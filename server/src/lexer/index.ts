@@ -1,5 +1,5 @@
-type Token = {}
-namespace Token {}
-
-type Block = {}
-namespace Block {}
+type Script = {}
+namespace Script {
+	type Token = {}
+	namespace Token {}
+}
