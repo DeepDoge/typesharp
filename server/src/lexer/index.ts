@@ -1,5 +1,5 @@
-type Script = {}
-namespace Script {
-	type Token = {}
-	namespace Token {}
+export type Script = {}
+export namespace Script {
+	export type Token = {}
+	export namespace Token {}
 }
