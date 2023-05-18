@@ -89,7 +89,7 @@ connection.onDidChangeConfiguration((change) => {
 		// Reset all cached document settings
 		documentSettings.clear()
 	} else {
-		globalSettings = <ExampleSettings>(change.settings.languageServerExample || defaultSettings)
+		globalSettings = (change.settings.languageServerExample || defaultSettings) as ExampleSettings
 	}
 
 	// Revalidate all open text documents
