@@ -2,11 +2,7 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"module": "ESNext",
-		"lib": ["ESNext", "DOM"],
-		"moduleResolution": "Node",
-		"resolveJsonModule": true,
-		"isolatedModules": true,
-		"esModuleInterop": true,
+		"lib": ["ESNext"],
 		"noEmit": true,
 		"skipLibCheck": true,
 		"removeComments": false,
@@ -35,7 +31,12 @@
 		"useDefineForClassFields": true,
 		/* ALLOW */
 		"noFallthroughCasesInSwitch": false,
-		"noPropertyAccessFromIndexSignature": false
+		"noPropertyAccessFromIndexSignature": false,
+
+		"outDir": "out",
+		"rootDir": "src"
 	},
-	"include": ["library"]
+	"include": ["src"],
+	"exclude": ["node_modules", ".vscode-test"],
+	"references": [{ "path": "./client" }, { "path": "./server" }]
 }
