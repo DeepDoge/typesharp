@@ -1,7 +1,7 @@
 # breeze-script
 
 An exprimental, hobby, fun, scripting or programming language idk, that has a really interesting typing system and has no GC also with a stack first approach.<br/>
-Aims to be readable by anyone, tries to combine `what typescript can be` and `some of rust but with better syntax by using already exiting concepts`.<br/>
+Aims to be readable by anyone, tries to combine `what typescript can be` and `some of rust but with better syntax by using already exiting concepts that does the same job instead of making up things`.<br/>
 
 Can be compiled to any language like `C`, `C#`, idk anything.<br/>
 At first I'm gonna make it compile to `C#` but without GC and reference types.<br/>
