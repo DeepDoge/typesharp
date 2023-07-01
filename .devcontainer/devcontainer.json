@@ -4,12 +4,10 @@
 	"name": "Node.js & TypeScript",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/typescript-node:0-20",
-	"features": {
-		"ghcr.io/devcontainers-contrib/features/pnpm:2": {}
-	},
+	"features": {},
 	"customizations": {
 		"vscode": {
-			"extensions": ["eamodio.gitlens", "esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+			"extensions": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
 		}
 	},
 
@@ -20,7 +18,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pnpm install"
+	"postCreateCommand": "npm install"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
