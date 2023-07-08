@@ -39,7 +39,7 @@ It's really, really and really early in the development... There is nothing yet 
 ## Examples
 
 ```ts
-ref var foo: i64 = malloc 10
+var foo: ref i64 = malloc 10
 foo = 20
 // foo gets freed when it goes out of scope
 ```
