@@ -75,17 +75,17 @@ foobarbaz is FooBarBaz // true
 type Number = i8 | i16 | i32 | i64 | u8 | u16 | u32 | u64 | f32 | f64
 Number |= uBig | iBig
 
-type Vector3(T: Number) = {
+type Vector3(T: Number) => {
     export type x = T
     export type y = T
     export type z = T
 }
 
-abstract type Shape(T: Number) = {
+abstract type Shape(T: Number) => {
     export func area(self: ref Self): T
 }
 
-type Circle(T: Number) = {
+type Circle(T: Number) => {
     export type radius = T
 }
 
@@ -95,7 +95,7 @@ Circle(T) &= Shape(T) {
     }
 }
 
-type Rectangle(T: Number) = {
+type Rectangle(T: Number) => {
     export type width = T
     export type height = T
 }
@@ -296,7 +296,7 @@ func foo(a: T, b: {
 
 also there are shorthands
 
-type Vector3(T: Number) = {
+type Vector3(T: Number) => {
     export type x = T
     export type y = T
     export type z = T
@@ -304,7 +304,7 @@ type Vector3(T: Number) = {
 
 would be the same as
 
-type Vector3(T: Number) = {
+type Vector3(T: Number) => {
     x = T
     y = T
     z = T
