@@ -346,3 +346,12 @@ if (value.a == 1) {
 } else if (value.a == 4) {
     value // has type Bar
 }
+
+when two types intersects then unlike unions new time is not any of the types that generated it
+
+but abstract types keeps track of what impliments it
+because in abstract types you can only use const and func.
+
+or idk, i need something simpler
+
+i mean i can just use operator function like in rust like Add Subtract traits. but it complicates things, ok i wannna have that with intersections but i also need a way to have an union that requires thing to implement something to be part of the union. 
