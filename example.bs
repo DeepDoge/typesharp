@@ -582,3 +582,6 @@ so in the example above we also have to provide ZERO to it before intersection
 
 
 
+we dont need traits, we dont need enums, we dont need Result<>, we dont need Optional<>
+all we need is types, unions, and intersections, stop inventing dumb things
+
