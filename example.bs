@@ -703,3 +703,15 @@ i64 &= Number {
     export const ZERO = 0
 }
 
+
+
+ok plan lets first impliment types
+then intersections and unions
+then run time variables and scopes
+then logic like if/else, no for loops for now
+then then consts
+then abstract types and rest
+then everything else, loops and etc
+
+first lets just parse code and show colors and info on hover in the ide
+then we can write compiling to c# 
