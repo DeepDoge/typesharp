@@ -551,6 +551,7 @@ we would know Number can only be i64 or i32, so we can do this
 
 func add(a: T: Number, b: T): T => a + b
 because we know that Number can only be implimented by other types, so, we keep track of what is implimenting it
+so we know it can only be i64 or i32, so we can use + operator on it
 
 so similar to this
 type Number
