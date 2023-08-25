@@ -713,5 +713,5 @@ then then consts
 then abstract types and rest
 then everything else, loops and etc
 
-first lets just parse code and show colors and info on hover in the ide
+first lets just parse code and show colors and info on hover in the ide with ide errors and etc, basically the lsp
 then we can write compiling to c# 
