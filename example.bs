@@ -585,3 +585,101 @@ so in the example above we also have to provide ZERO to it before intersection
 we dont need traits, we dont need enums, we dont need Result<>, we dont need Optional<>
 all we need is types, unions, and intersections, stop inventing dumb things
 
+type Number = {
+   export const ZERO: Self
+}
+i64 &= Number {
+   ZERO = 0
+}
+i32 &= Number {
+   ZERO = 0
+}
+
+i64::ZERO // works
+
+but
+
+func add(a: T: Number, b: T): T => a + b // won't work, because we dont know what Number is, so we dont know if we can use + operator on it
+
+but
+
+if we use abstract type instead of type, then it works because we know what Number is, it can only be i64 or i32
+
+ok so weird things we can do with this whole syntax to understand it better
+
+type Foo = {
+    const n = 1
+
+    return typeof n
+} // Foo has type i64
+
+ok so typeof keyword, gives us the underlying type of the value without literals
+
+
+ok example of compile time code, that will only run on compile time
+
+const foo = {
+    var n = 1
+    export var x = n * n
+} // foo has type { x: i64 } and it is a compile time value
+
+
+ok so we can do this
+
+var main = {
+    print("hello world")
+    return 0 
+}
+
+so main only runs once on runtime and has the value 0: i64
+
+equivalent js code would be
+
+var main;
+{
+    print("hello world")
+    main = 0
+}
+
+
+
+
+ok some more syntax change
+
+abstract type Shape {
+    export func area(self: ref Self): f64
+}
+
+type Circle = Shape & {
+    export type radius = f64
+    export func area(self: ref Circle): f64 => 3.14 * self.radius * self.radius
+}
+
+var circle = Circle { radius = 2.0 }
+print(circle.area())  // Output: Approximately 12.56
+
+so abstract type requires to be intersected with another type, 
+and it expects intersections to impliment the funcs and types it has if they have no defaults
+
+so before it was like this
+
+type Circle = Shape {
+    export func area(self: ref Circle): f64 => 3.14 * self.radius * self.radius
+} & {
+    export type radius = f64
+}
+
+but this is more clean
+type Circle = Shape & {
+    export type radius = f64
+    export func area(self: ref Circle): f64 => 3.14 * self.radius * self.radius
+}
+
+also makes more sense
+
+
+so if i had this
+
+type Number = Addable
+i64 &= Number // would require to impliment Addable, but since with this syntax, it doesnt, because i64 already impliments it
+
