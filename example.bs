@@ -683,3 +683,23 @@ so if i had this
 type Number = Addable
 i64 &= Number // would require to impliment Addable, but since with this syntax, it doesnt, because i64 already impliments it
 
+
+tbh im also thinknig if i should change the keyword `abstract type` to `type trait` because it is more like a trait than a type
+and this keyword starts with `type` its more clean in some way
+
+so like this
+
+type trait Number = {
+    export const ZERO: Self
+}
+
+i64 &= Number & {
+    export const ZERO = 0
+}
+
+tbh i should still allow this syntax too
+
+i64 &= Number {
+    export const ZERO = 0
+}
+
