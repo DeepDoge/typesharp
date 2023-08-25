@@ -739,10 +739,10 @@ LinkedList(T) &= {
     }
     export func add(self: ref Self, value: T) => {
         if (self.head is None) {
-            self.head = ref LinkedList::Node { value = value, next = None }
+            self.head = ref Node { value = value, next = None }
             self.tail = self.head
         } else {
-            self.tail.next = ref LinkedList::Node { value = value, next = None }
+            self.tail.next = ref Node { value = value, next = None }
             self.tail = self.tail.next
         }
         self.length++
