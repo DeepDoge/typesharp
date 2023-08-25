@@ -621,7 +621,7 @@ ok example of compile time code, that will only run on compile time
 const foo = {
     var n = 1
     export var x = n * n
-} // foo has type { x: i64 } and it is a compile time value
+} // foo has type { x: 2 } and it is a compile time value
 
 
 ok so we can do this
