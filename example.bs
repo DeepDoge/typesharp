@@ -792,3 +792,6 @@ list.add(5)
 for (i from 0 to list.length - 1) {
     print(list.get(i))
 }
+
+
+this whole LinkedList example not really valid code because we dont have any idea on how lifetimes will work
