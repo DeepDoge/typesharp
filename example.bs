@@ -1028,4 +1028,4 @@ because of how our typing system works
 
 
 tho if we can determine if a ref is on the stack based on where its addresing and if its inside the stack's range
-then it would be better.
+then it would be better. then we dont need to hold type if info like this
