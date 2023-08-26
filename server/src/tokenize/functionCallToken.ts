@@ -1,4 +1,4 @@
-import { ScriptReader } from "./reader"
+import type { ScriptReader } from "./reader"
 import { Value } from "./valueToken"
 
 export namespace FunctionCall {
@@ -8,37 +8,36 @@ export namespace FunctionCall {
 		args: Value.Token[]
 	}
 
-	const notError = new ScriptReader.NotError("Not a function call")
-
-	export function expect(scriptReader: ScriptReader): Token | Error {
+	export function expect(scriptReader: ScriptReader): Token | Error | null {
 		const error = (error: Error) => new Error(`While expecting function call: ${error.message}`)
 
 		const name = scriptReader.expectWord()
-		if (name instanceof Error) return notError
+		if (!name) return null
 
 		scriptReader.skipWhitespace()
 
 		const openParen = scriptReader.expect("(")
-		if (openParen instanceof Error) return notError
+		if (!openParen) return null
 
 		scriptReader.skipWhitespace()
 
 		const args: Token["args"] = []
 		while (true) {
 			const arg = Value.expect(scriptReader)
+			if (!arg) return error(new Error(`Expected argument`))
 			if (arg instanceof Error) return error(arg)
 			args.push(arg)
 
 			scriptReader.skipWhitespace()
 
 			const comma = scriptReader.expect(",")
-			if (comma instanceof Error) break
+			if (!comma) break
 		}
 
 		scriptReader.skipWhitespace()
 
 		const closeParen = scriptReader.expect(")")
-		if (closeParen instanceof Error) return error(new Error(`Expected closing parenthesis`))
+		if (!closeParen) return error(new Error(`Expected closing parenthesis`))
 
 		return {
 			tokenType: "functionCall",

@@ -1,7 +1,7 @@
 import { FunctionCall } from "./functionCallToken"
 import { Literal } from "./literalToken"
 import { Operation } from "./operationToken"
-import { ScriptReader } from "./reader"
+import type { ScriptReader } from "./reader"
 import { VariableName } from "./variableNameToken"
 
 export namespace Value {
@@ -13,26 +13,24 @@ export namespace Value {
 
 	export const valueTokens = [VariableName, FunctionCall, Literal] as const
 
-	const notError = new ScriptReader.NotError("Not a value")
-
-	export function expect(scriptReader: ScriptReader): Token | Error | ScriptReader.NotError {
+	export function expect(scriptReader: ScriptReader): Token | Error | null {
 		const error = (error: Error) => new Error(`While expecting value: ${error.message}`)
 
 		let token: Token["token"] | null = null
 		for (const valueToken of valueTokens) {
 			const value = valueToken.expect(scriptReader)
-			if (!(value instanceof ScriptReader.NotError)) {
-				if (value instanceof Error) return error(value)
-				token = value
-				break
-			}
+			if (!value) continue
+
+			if (value instanceof Error) return error(value)
+			token = value
+			break
 		}
-		if (token === null) return notError
+		if (token === null) return null
 
 		scriptReader.skipWhitespace()
 
 		const operation = Operation.expect(scriptReader)
-		if (!(operation instanceof ScriptReader.NotError)) {
+		if (operation) {
 			if (operation instanceof Error) return error(operation)
 			return {
 				tokenType: "value",

@@ -1,18 +1,15 @@
-import { ScriptReader } from "./reader"
+import type { ScriptReader } from "./reader"
 
 export namespace Literal {
 	export type Token = Number.Token
 
-	const notError = new ScriptReader.NotError("Not a literal")
-
-	export function expect(scriptReader: ScriptReader): Token | ScriptReader.NotError {
+	export function expect(scriptReader: ScriptReader): Token | Error | null {
 		const numberLiteral = Number.expect(scriptReader)
-		if (!(numberLiteral instanceof ScriptReader.NotError)) {
+		if (numberLiteral) {
 			if (numberLiteral instanceof Error) return numberLiteral
 			return numberLiteral
 		}
-
-		return notError
+		return null
 	}
 
 	export namespace Number {
@@ -22,9 +19,7 @@ export namespace Literal {
 			isFloat: boolean
 		}
 
-		const notError = new ScriptReader.NotError("Not a number literal")
-
-		export function expect(scriptReader: ScriptReader): Token | Error | ScriptReader.NotError {
+		export function expect(scriptReader: ScriptReader): Token | Error | null {
 			const error = (error: Error) => new Error(`While expecting number literal: ${error.message}`)
 
 			let value = ""
@@ -42,7 +37,7 @@ export namespace Literal {
 				value += scriptReader.next()
 			}
 
-			if (value === "") return notError
+			if (value === "") return null
 
 			return {
 				tokenType: "literalNumber",

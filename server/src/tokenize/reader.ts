@@ -1,10 +1,10 @@
 export type ScriptReader = {
 	checkpoint(): ScriptReader.Checkpoint
 	skipWhitespace(ignoreNewlines?: boolean): void
-	expectWhitespace(ignoreNewlines?: boolean): string | ScriptReader.NotError
-	expectWord(): string | ScriptReader.NotError
-	expect(expected: string): string | ScriptReader.NotError
-	expectEndOfLine(): string | ScriptReader.NotError
+	expectWhitespace(ignoreNewlines?: boolean): string | null
+	expectWord(): string | null
+	expect(expected: string): string | null
+	expectEndOfLine(): string | null
 
 	hasMore(): boolean
 	next(): string
@@ -14,8 +14,6 @@ export namespace ScriptReader {
 	export type Checkpoint = {
 		restore(): void
 	}
-
-	export class NotError extends Error {}
 
 	export function create(script: string): ScriptReader {
 		let index = 0
@@ -51,7 +49,7 @@ export namespace ScriptReader {
 					this.skipWhitespace(ignoreNewlines)
 					return char
 				}
-				return new ScriptReader.NotError(`Expected whitespace`)
+				return null
 			},
 			expectWord() {
 				let word = ""
@@ -59,17 +57,17 @@ export namespace ScriptReader {
 					word += script[index]
 					index++
 				}
-				if (word === "") return new ScriptReader.NotError(`Expected a word`)
+				if (word === "") return null
 				return word
 			},
 			expect(expected: string) {
 				let index = 0
 				while (index < script.length && index < expected.length) {
-					if (script[index] !== expected[index]) return new ScriptReader.NotError(`Expected ${expected}`)
+					if (script[index] !== expected[index]) return null
 					index++
 					index++
 				}
-				if (index < expected.length) return new ScriptReader.NotError(`Expected ${expected}`)
+				if (index < expected.length) return null
 				return expected
 			},
 			expectEndOfLine() {
@@ -79,7 +77,7 @@ export namespace ScriptReader {
 				if (script[index] === "\r") return "\n"
 				if (script[index] === "\0") return "\0"
 				if (script[index] === ";") return ";"
-				return new ScriptReader.NotError(`Expected end of line`)
+				return null
 			},
 		}
 

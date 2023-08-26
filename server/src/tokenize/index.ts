@@ -20,7 +20,7 @@ export function tokenize(script: string) {
 		for (const topLevelToken of topLevelTokens) {
 			const checkpoint = reader.checkpoint()
 			const token = topLevelToken.expect(reader)
-			if (!(token instanceof ScriptReader.NotError)) {
+			if (token) {
 				if (token instanceof Error) return token
 				tokens.push(token)
 				reader.expectEndOfLine()
