@@ -6,7 +6,11 @@ const script = `
     var bar = 321
     var baz = foo + bar
     
-    print(foo, 1 + 2, 3 + 4, 5 + 6)
+    print(foo, 1 + 2, 3 + 4, 5 + beep())
+
+    {
+        var foo = 1
+    }
 `
 
 const result = tokenize(script)

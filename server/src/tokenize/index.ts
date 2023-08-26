@@ -1,38 +1,17 @@
-import type { FunctionCall } from "./functionCallToken"
-import type { Literal } from "./literalToken"
-import type { Operation } from "./operationToken"
 import { ScriptReader } from "./reader"
-import { Value } from "./valueToken"
-import { VariableDefinition } from "./variableDefinitionToken"
-import type { VariableName } from "./variableNameToken"
+import { TopLevelToken } from "./topLevelToken"
 
-export type Token = FunctionCall.Token | Literal.Token | Operation.Token | Value.Token | VariableDefinition.Token | VariableName.Token
-
-export function tokenize(script: string) {
+export function tokenize(script: string): TopLevelToken.Token[] | ScriptReader.SyntaxError {
 	const reader = ScriptReader.create(script)
-	const tokens: Token[] = []
+	const tokens: TopLevelToken.Token[] = []
 
-	const topLevelTokens = [VariableDefinition, Value] as const
-
-	whileLoop: while (true) {
+	while (true) {
 		reader.skipWhitespace()
 
-		const checkpoint = reader.checkpoint()
-		for (const topLevelToken of topLevelTokens) {
-			checkpoint.restore()
-			const token = topLevelToken.expect(reader)
-			if (token) {
-				if (token instanceof ScriptReader.SyntaxError) return token
-				tokens.push(token)
-				reader.expectEndOfLine()
-				continue whileLoop
-			}
-		}
-
-		reader.skipWhitespace()
-		const char = reader.peek()
-		if (!char) break
-		return reader.syntaxError(`Unexpected character "${char}"`)
+		const token = TopLevelToken.expect(reader)
+		if (!token) break
+		if (token instanceof ScriptReader.SyntaxError) return token
+		tokens.push(token)
 	}
 
 	return tokens
