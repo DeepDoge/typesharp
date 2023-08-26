@@ -1,9 +1,9 @@
 import { ScriptReader } from "./reader"
 import { Value } from "./valueToken"
 
-export namespace Operation {
+export namespace ValueOperation {
 	export type Token = {
-		tokenType: "operator"
+		tokenType: "valueOperation"
 		operator: (typeof operators)[number]
 		right: Value.Token
 	}
@@ -15,7 +15,7 @@ export namespace Operation {
 		const checkpoint = reader.checkpoint()
 		for (const operator of operators) {
 			checkpoint.restore()
-			if (!reader.expect(operator)) continue
+			if (!reader.expectString(operator)) continue
 
 			// Not allow ugly code... >:D
 			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after operator: "${operator}"`))
@@ -26,7 +26,7 @@ export namespace Operation {
 				return error(reader.syntaxError(`While expecting right-hand side of operator:\n\t${right.message}`))
 
 			return {
-				tokenType: "operator",
+				tokenType: "valueOperation",
 				operator,
 				right,
 			} satisfies Token

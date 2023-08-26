@@ -3,7 +3,7 @@ export type ScriptReader = {
 	skipWhitespace(ignoreNewlines?: boolean): void
 	expectWhitespace(ignoreNewlines?: boolean): string | null
 	expectWord(): string | null
-	expect(expected: string): string | null
+	expectString(expected: string): string | null
 	expectEndOfLine(): string | null
 
 	next(): string | null
@@ -78,7 +78,7 @@ export namespace ScriptReader {
 				}
 				return word
 			},
-			expect(expected: string) {
+			expectString(expected: string) {
 				for (const char of expected) {
 					if (self.peek() !== char) return null
 					self.next()

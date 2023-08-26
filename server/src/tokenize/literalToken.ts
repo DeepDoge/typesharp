@@ -1,4 +1,5 @@
 import { ScriptReader } from "./reader"
+import { TypeName } from "./typeNameToken"
 
 export namespace Literal {
 	export type Token = Number.Token
@@ -16,6 +17,7 @@ export namespace Literal {
 		export type Token = {
 			tokenType: "literalNumber"
 			value: string
+			satisfies: TypeName.Token | null
 			isFloat: boolean
 		}
 
@@ -38,10 +40,21 @@ export namespace Literal {
 
 			if (value === "") return null
 
+			let satisfies: TypeName.Token | null = null
+			const colon = reader.expectString(":")
+			if (colon) {
+				if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after colon`))
+				const typeName = TypeName.expect(reader)
+				if (!typeName) return error(reader.syntaxError(`Expected type name after colon`))
+				if (typeName instanceof ScriptReader.SyntaxError) return error(typeName)
+				satisfies = typeName
+			}
+
 			return {
 				tokenType: "literalNumber",
 				value,
 				isFloat,
+				satisfies,
 			} satisfies Token
 		}
 	}

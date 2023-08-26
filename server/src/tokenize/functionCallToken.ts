@@ -14,7 +14,7 @@ export namespace FunctionCall {
 		const name = reader.expectWord()
 		if (!name) return null
 
-		if (!reader.expect("(")) return null
+		if (!reader.expectString("(")) return null
 
 		const args: Token["args"] = []
 		while (true) {
@@ -25,10 +25,10 @@ export namespace FunctionCall {
 			args.push(arg)
 
 			reader.skipWhitespace()
-			if (!reader.expect(",")) break
+			if (!reader.expectString(",")) break
 		}
 
-		if (!reader.expect(")")) return error(reader.syntaxError(`Expected ")"`))
+		if (!reader.expectString(")")) return error(reader.syntaxError(`Expected ")"`))
 
 		return {
 			tokenType: "functionCall",

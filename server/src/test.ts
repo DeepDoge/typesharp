@@ -2,15 +2,12 @@ import { tokenize } from "./tokenize"
 import { ScriptReader } from "./tokenize/reader"
 
 const script = `
-    var foo = 1.5 + 5
-    var bar = 321
-    var baz = foo + bar
-    
-    print(foo, 1 + 2, 3 + 4, 5 + beep())
+    return 123
+    export var a: i64 = 123
+    type Foo = i64 | i32
+    export type Bar = Foo | 123: i32
 
-    {
-        var foo = 1
-    }
+    var bar: i32 | string = 123
 `
 
 const result = tokenize(script)

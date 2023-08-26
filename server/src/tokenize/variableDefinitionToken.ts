@@ -1,18 +1,19 @@
 import { ScriptReader } from "./reader"
+import { Type } from "./typeToken"
 import { Value } from "./valueToken"
 
 export namespace VariableDefinition {
 	export type Token = {
 		tokenType: "variableDefinition"
 		name: string
-		type: string | null
+		type: Type.Token | null
 		value: Value.Token
 	}
 
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 
-		const keyword = reader.expect("var")
+		const keyword = reader.expectString("var")
 		if (!keyword) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "var"`))
@@ -22,20 +23,22 @@ export namespace VariableDefinition {
 
 		const beforeColorCheckpoint = reader.checkpoint()
 		let type: Token["type"] = null
-		const colon = reader.expect(":")
+		const colon = reader.expectString(":")
 		if (colon) {
-			reader.skipWhitespace()
-			const typeName = reader.expectWord()
-			if (!typeName) return error(reader.syntaxError(`Expected type name after colon`))
-			type = typeName
-		} else beforeColorCheckpoint.restore()
+			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after colon`))
+			const typeToken = Type.expect(reader)
+			if (!typeToken) return error(reader.syntaxError(`Expected type name after colon`))
+			if (typeToken instanceof ScriptReader.SyntaxError) return error(typeToken)
+			type = typeToken
+		} else {
+			beforeColorCheckpoint.restore()
+			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after name`))
+		}
 
-		reader.skipWhitespace()
-
-		const equals = reader.expect("=")
+		const equals = reader.expectString("=")
 		if (!equals) return error(reader.syntaxError(`Expected equals sign`))
 
-		reader.skipWhitespace()
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals sign`))
 
 		const value = Value.expect(reader)
 		if (!value) return error(reader.syntaxError(`Expected value`))

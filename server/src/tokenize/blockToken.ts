@@ -11,7 +11,7 @@ export namespace Block {
 		reader: ScriptReader,
 		ignoreCurlyBraces?: T
 	): Token | ScriptReader.SyntaxError | (T extends true ? never : null) {
-		if (!ignoreCurlyBraces && !reader.expect("{")) return null as never
+		if (!ignoreCurlyBraces && !reader.expectString("{")) return null as never
 
 		const tokens: Token["tokens"] = []
 		while (true) {
@@ -29,7 +29,7 @@ export namespace Block {
 
 		reader.skipWhitespace()
 
-		if (!ignoreCurlyBraces && !reader.expect("}")) return reader.syntaxError(`Expected "}"`)
+		if (!ignoreCurlyBraces && !reader.expectString("}")) return reader.syntaxError(`Expected "}"`)
 
 		return {
 			tokenType: "block",
