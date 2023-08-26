@@ -7,21 +7,29 @@ export namespace Block {
 		tokens: TopLevelToken.Token[]
 	}
 
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
-		if (!reader.expect("{")) return null
+	export function expect<T extends boolean>(
+		reader: ScriptReader,
+		ignoreCurlyBraces?: T
+	): Token | ScriptReader.SyntaxError | (T extends true ? never : null) {
+		if (!ignoreCurlyBraces && !reader.expect("{")) return null as never
 
 		const tokens: Token["tokens"] = []
 		while (true) {
 			reader.skipWhitespace()
 			const token = TopLevelToken.expect(reader)
-			if (!token) break
+			if (!token) {
+				const char = reader.peek()
+				if (char === "}") break
+				if (char) return reader.syntaxError(`Unexpected character: ${char}`)
+				else break
+			}
 			if (token instanceof ScriptReader.SyntaxError) return token
 			tokens.push(token)
 		}
 
 		reader.skipWhitespace()
 
-		if (!reader.expect("}")) return reader.syntaxError(`Expected "}"`)
+		if (!ignoreCurlyBraces && !reader.expect("}")) return reader.syntaxError(`Expected "}"`)
 
 		return {
 			tokenType: "block",

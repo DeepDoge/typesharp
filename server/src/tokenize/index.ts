@@ -1,18 +1,9 @@
+import "./topLevelToken" // This is the root of all tokens, so to be able to import and load all tokens correctly, we need to import it first
+
+import { Block } from "./blockToken"
 import { ScriptReader } from "./reader"
-import { TopLevelToken } from "./topLevelToken"
 
-export function tokenize(script: string): TopLevelToken.Token[] | ScriptReader.SyntaxError {
+export function tokenize(script: string) {
 	const reader = ScriptReader.create(script)
-	const tokens: TopLevelToken.Token[] = []
-
-	while (true) {
-		reader.skipWhitespace()
-
-		const token = TopLevelToken.expect(reader)
-		if (!token) break
-		if (token instanceof ScriptReader.SyntaxError) return token
-		tokens.push(token)
-	}
-
-	return tokens
+	return Block.expect(reader, true)
 }
