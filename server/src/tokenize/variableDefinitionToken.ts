@@ -15,7 +15,7 @@ export namespace VariableDefinition {
 		const keyword = scriptReader.expect("var")
 		if (!keyword) return null
 
-		scriptReader.expectWhitespace()
+		if (!scriptReader.expectWhitespace()) return error(new Error(`Expected whitespace after "var"`))
 
 		const name = scriptReader.expectWord()
 		if (!name) return null

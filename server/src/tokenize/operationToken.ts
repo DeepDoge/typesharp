@@ -15,7 +15,8 @@ export namespace Operation {
 		for (const operator of operators) {
 			if (!scriptReader.expect(operator)) continue
 
-			scriptReader.skipWhitespace()
+			// Not allow ugly code... >:D
+			if (!scriptReader.expectWhitespace()) return error(new Error(`Expected whitespace after operator`))
 
 			const right = Value.expect(scriptReader)
 			if (!right) return error(new Error(`Expected right-hand side of operator`))
