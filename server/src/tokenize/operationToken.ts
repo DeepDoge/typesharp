@@ -1,4 +1,4 @@
-import type { ScriptReader } from "./reader"
+import { ScriptReader } from "./reader"
 import { Value } from "./valueToken"
 
 export namespace Operation {
@@ -9,18 +9,21 @@ export namespace Operation {
 	}
 
 	const operators = ["+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "&&", "||"] as const
-	export function expect(scriptReader: ScriptReader): Token | Error | null {
-		const error = (error: Error) => new Error(`While expecting operator: ${error.message}`)
+	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting operator:\n\t${error.message}`)
 
+		const checkpoint = reader.checkpoint()
 		for (const operator of operators) {
-			if (!scriptReader.expect(operator)) continue
+			checkpoint.restore()
+			if (!reader.expect(operator)) continue
 
 			// Not allow ugly code... >:D
-			if (!scriptReader.expectWhitespace()) return error(new Error(`Expected whitespace after operator`))
+			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after operator: "${operator}"`))
 
-			const right = Value.expect(scriptReader)
-			if (!right) return error(new Error(`Expected right-hand side of operator`))
-			if (right instanceof Error) return error(new Error(`While expecting right-hand side of operator: ${right.message}`))
+			const right = Value.expect(reader)
+			if (!right) return error(reader.syntaxError(`Expected right-hand side of operator`))
+			if (right instanceof ScriptReader.SyntaxError)
+				return error(reader.syntaxError(`While expecting right-hand side of operator:\n\t${right.message}`))
 
 			return {
 				tokenType: "operator",

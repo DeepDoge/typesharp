@@ -6,13 +6,22 @@ export type ScriptReader = {
 	expect(expected: string): string | null
 	expectEndOfLine(): string | null
 
-	hasMore(): boolean
-	next(): string
-	peek(): string
+	next(): string | null
+	peek(): string | null
+
+	syntaxError(message: string): ScriptReader.SyntaxError
 }
 export namespace ScriptReader {
 	export type Checkpoint = {
 		restore(): void
+	}
+
+	export class SyntaxError extends Error {
+		public readonly at: number
+		constructor(message: string, at: number) {
+			super(message)
+			this.at = at
+		}
 	}
 
 	export function create(script: string): ScriptReader {
@@ -26,52 +35,58 @@ export namespace ScriptReader {
 					},
 				}
 			},
-			hasMore() {
-				return index < script.length
+			syntaxError(message) {
+				return new SyntaxError(message, index)
 			},
 			next() {
-				let char = script[index]
-				if (this.hasMore()) index++
-				return char
+				if (index >= script.length) return null
+				return script[index++]
 			},
 			peek() {
+				if (index >= script.length) return null
 				return script[index]
 			},
 			skipWhitespace(ignoreNewlines = false) {
-				while (index < script.length && /\s/.test(script[index])) {
-					if (ignoreNewlines && script[index] === "\n") break
+				while (true) {
+					const char = self.peek()
+					if (!char) return
+					if (char === "\n" && ignoreNewlines) return
+					if (!/^\s$/.test(char)) return
 					index++
 				}
 			},
 			expectWhitespace(ignoreNewlines = false) {
-				const char = this.next()
+				const char = self.peek()
+				if (!char) return null
 				if (/^\s$/.test(char)) {
-					this.skipWhitespace(ignoreNewlines)
+					self.skipWhitespace(ignoreNewlines)
 					return char
 				}
 				return null
 			},
 			expectWord() {
+				// word starts with a letter, underscore, or dollar sign, and is followed by any number of letters, underscores, dollar signs, or numbers
+				const char = self.peek()
+				if (!char) return null
+				if (!/^[a-zA-Z_$]$/.test(char)) return null
 				let word = ""
-				while (index < script.length && /[a-zA-Z0-9_]/.test(script[index])) {
-					word += script[index]
-					index++
+				while (true) {
+					const char = self.peek()
+					if (!char) break
+					if (!/^[a-zA-Z0-9_$]$/.test(char)) break
+					word += self.next()
 				}
-				if (word === "") return null
 				return word
 			},
 			expect(expected: string) {
-				let index = 0
-				while (index < script.length && index < expected.length) {
-					if (script[index] !== expected[index]) return null
-					index++
-					index++
+				for (const char of expected) {
+					if (self.peek() !== char) return null
+					self.next()
 				}
-				if (index < expected.length) return null
 				return expected
 			},
 			expectEndOfLine() {
-				this.skipWhitespace(true)
+				self.skipWhitespace(true)
 				if (index === script.length - 1) return "\0"
 				if (script[index] === "\n") return "\n"
 				if (script[index] === "\r") return "\n"

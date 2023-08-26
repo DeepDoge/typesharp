@@ -14,20 +14,26 @@ export function tokenize(script: string) {
 
 	const topLevelTokens = [VariableDefinition, Value] as const
 
-	whileLoop: while (reader.hasMore()) {
+	whileLoop: while (true) {
 		reader.skipWhitespace()
 
+		const checkpoint = reader.checkpoint()
 		for (const topLevelToken of topLevelTokens) {
-			const checkpoint = reader.checkpoint()
+			checkpoint.restore()
 			const token = topLevelToken.expect(reader)
 			if (token) {
-				if (token instanceof Error) return token
+				if (token instanceof ScriptReader.SyntaxError) return token
 				tokens.push(token)
 				reader.expectEndOfLine()
 				continue whileLoop
 			}
-			checkpoint.restore()
 		}
-		return new Error(`Unexpected character ${reader.peek()}`)
+
+		reader.skipWhitespace()
+		const char = reader.peek()
+		if (!char) break
+		return reader.syntaxError(`Unexpected character "${char}"`)
 	}
+
+	return tokens
 }

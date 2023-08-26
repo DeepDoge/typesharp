@@ -29,7 +29,7 @@ export function run(): Promise<void> {
 				// Run the mocha test
 				mocha.run((failures) => {
 					if (failures > 0) {
-						reject(new Error(`${failures} tests failed.`))
+						reject(reader.syntaxError(`${failures} tests failed.`))
 					} else {
 						resolve()
 					}

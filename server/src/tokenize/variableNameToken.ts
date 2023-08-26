@@ -6,8 +6,8 @@ export namespace VariableName {
 		name: string
 	}
 
-	export function expect(scriptReader: ScriptReader): Token | null {
-		const name = scriptReader.expectWord()
+	export function expect(reader: ScriptReader): Token | null {
+		const name = reader.expectWord()
 		if (!name) return null
 
 		return {

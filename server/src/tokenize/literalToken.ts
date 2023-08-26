@@ -1,12 +1,12 @@
-import type { ScriptReader } from "./reader"
+import { ScriptReader } from "./reader"
 
 export namespace Literal {
 	export type Token = Number.Token
 
-	export function expect(scriptReader: ScriptReader): Token | Error | null {
-		const numberLiteral = Number.expect(scriptReader)
+	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+		const numberLiteral = Number.expect(reader)
 		if (numberLiteral) {
-			if (numberLiteral instanceof Error) return numberLiteral
+			if (numberLiteral instanceof ScriptReader.SyntaxError) return numberLiteral
 			return numberLiteral
 		}
 		return null
@@ -19,22 +19,21 @@ export namespace Literal {
 			isFloat: boolean
 		}
 
-		export function expect(scriptReader: ScriptReader): Token | Error | null {
-			const error = (error: Error) => new Error(`While expecting number literal: ${error.message}`)
+		export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+			const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting number literal:\n\t${error.message}`)
 
 			let value = ""
 			let isFloat = false
-			while (true) {
-				const char = scriptReader.peek()
-				if (char === null) break
+			let char: string | null = null
+			while ((char = reader.peek())) {
 				if (char === ".") {
-					if (isFloat) return error(new Error(`Unexpected second decimal point`))
+					if (isFloat) return error(reader.syntaxError(`Unexpected second decimal point`))
 					isFloat = true
-					value += scriptReader.next()
+					value += reader.next()
 					continue
 				}
 				if (!/^[0-9]$/.test(char)) break
-				value += scriptReader.next()
+				value += reader.next()
 			}
 
 			if (value === "") return null

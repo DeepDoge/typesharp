@@ -1,4 +1,4 @@
-import type { ScriptReader } from "./reader"
+import { ScriptReader } from "./reader"
 import { Value } from "./valueToken"
 
 export namespace VariableDefinition {
@@ -9,37 +9,37 @@ export namespace VariableDefinition {
 		value: Value.Token
 	}
 
-	export function expect(scriptReader: ScriptReader): Token | Error | null {
-		const error = (error: Error) => new Error(`While expecting variable definition: ${error.message}`)
+	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 
-		const keyword = scriptReader.expect("var")
+		const keyword = reader.expect("var")
 		if (!keyword) return null
 
-		if (!scriptReader.expectWhitespace()) return error(new Error(`Expected whitespace after "var"`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "var"`))
 
-		const name = scriptReader.expectWord()
+		const name = reader.expectWord()
 		if (!name) return null
 
-		const beforeColorCheckpoint = scriptReader.checkpoint()
+		const beforeColorCheckpoint = reader.checkpoint()
 		let type: Token["type"] = null
-		const colon = scriptReader.expect(":")
+		const colon = reader.expect(":")
 		if (colon) {
-			scriptReader.skipWhitespace()
-			const typeName = scriptReader.expectWord()
-			if (!typeName) return error(new Error(`Expected type name after colon`))
+			reader.skipWhitespace()
+			const typeName = reader.expectWord()
+			if (!typeName) return error(reader.syntaxError(`Expected type name after colon`))
 			type = typeName
 		} else beforeColorCheckpoint.restore()
 
-		scriptReader.skipWhitespace()
+		reader.skipWhitespace()
 
-		const equals = scriptReader.expect("=")
-		if (!equals) return error(new Error(`Expected equals sign`))
+		const equals = reader.expect("=")
+		if (!equals) return error(reader.syntaxError(`Expected equals sign`))
 
-		scriptReader.skipWhitespace()
+		reader.skipWhitespace()
 
-		const value = Value.expect(scriptReader)
-		if (!value) return error(new Error(`Expected value`))
-		if (value instanceof Error) return error(value)
+		const value = Value.expect(reader)
+		if (!value) return error(reader.syntaxError(`Expected value`))
+		if (value instanceof ScriptReader.SyntaxError) return error(value)
 
 		return {
 			tokenType: "variableDefinition",
