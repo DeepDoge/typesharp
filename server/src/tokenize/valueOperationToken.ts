@@ -1,8 +1,9 @@
+import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
 import { Value } from "./valueToken"
 
 export namespace ValueOperation {
-	export type Token = {
+	export type Token = TokenLocation & {
 		tokenType: "valueOperation"
 		operator: (typeof operators)[number]
 		right: Value.Token
@@ -11,6 +12,7 @@ export namespace ValueOperation {
 	const operators = ["+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "&&", "||"] as const
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting operator:\n\t${error.message}`)
+		const startAt = reader.getIndex()
 
 		const checkpoint = reader.checkpoint()
 		for (const operator of operators) {
@@ -29,6 +31,10 @@ export namespace ValueOperation {
 				tokenType: "valueOperation",
 				operator,
 				right,
+				location: {
+					startAt,
+					endAt: reader.getIndex(),
+				},
 			} satisfies Token
 		}
 

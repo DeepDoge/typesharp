@@ -1,3 +1,4 @@
+import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
 import { TypeName } from "./typeNameToken"
 
@@ -14,7 +15,7 @@ export namespace Literal {
 	}
 
 	export namespace Number {
-		export type Token = {
+		export type Token = TokenLocation & {
 			tokenType: "literalNumber"
 			value: string
 			satisfies: TypeName.Token | null
@@ -23,6 +24,7 @@ export namespace Literal {
 
 		export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 			const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting number literal:\n\t${error.message}`)
+			const startAt = reader.getIndex()
 
 			let value = ""
 			let isFloat = false
@@ -55,6 +57,10 @@ export namespace Literal {
 				value,
 				isFloat,
 				satisfies,
+				location: {
+					startAt,
+					endAt: reader.getIndex(),
+				},
 			} satisfies Token
 		}
 	}

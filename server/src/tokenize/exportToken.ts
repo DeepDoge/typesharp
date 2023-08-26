@@ -1,9 +1,10 @@
+import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
 import { TypeDefinition } from "./typeDefinitionToken"
 import { VariableDefinition } from "./variableDefinitionToken"
 
 export namespace Export {
-	export type Token = {
+	export type Token = TokenLocation & {
 		tokenType: "export"
 		token: Exclude<ReturnType<(typeof exportableTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
 	}
@@ -12,6 +13,7 @@ export namespace Export {
 
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
+		const startAt = reader.getIndex()
 
 		const keyword = "export" as const
 		if (!reader.expectString(keyword)) return null
@@ -33,6 +35,10 @@ export namespace Export {
 		return {
 			tokenType: "export",
 			token,
+			location: {
+				startAt,
+				endAt: reader.getIndex(),
+			},
 		} satisfies Token
 	}
 }

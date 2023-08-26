@@ -1,8 +1,9 @@
+import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
 import { TopLevelToken } from "./topLevelToken"
 
 export namespace Block {
-	export type Token = {
+	export type Token = TokenLocation & {
 		tokenType: "block"
 		tokens: TopLevelToken.Token[]
 	}
@@ -11,6 +12,7 @@ export namespace Block {
 		reader: ScriptReader,
 		ignoreCurlyBraces?: T
 	): Token | ScriptReader.SyntaxError | (T extends true ? never : null) {
+		const startAt = reader.getIndex()
 		if (!ignoreCurlyBraces && !reader.expectString("{")) return null as never
 
 		reader.skipWhitespace()
@@ -33,6 +35,10 @@ export namespace Block {
 		return {
 			tokenType: "block",
 			tokens,
+			location: {
+				startAt,
+				endAt: reader.getIndex(),
+			},
 		} satisfies Token
 	}
 }

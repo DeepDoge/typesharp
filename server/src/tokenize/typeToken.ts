@@ -1,10 +1,11 @@
+import type { TokenLocation } from "."
 import { Literal } from "./literalToken"
 import { ScriptReader } from "./reader"
 import { TypeName } from "./typeNameToken"
 import { TypeOperation } from "./typeOperationToken"
 
 export namespace Type {
-	export type Token = {
+	export type Token = TokenLocation & {
 		tokenType: "type"
 		token: Exclude<ReturnType<(typeof typeTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
 		operation: TypeOperation.Token | null
@@ -14,6 +15,7 @@ export namespace Type {
 
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
+		const startAt = reader.getIndex()
 
 		const checkpoint = reader.checkpoint()
 		let token: Token["token"] | null = null
@@ -38,6 +40,10 @@ export namespace Type {
 				tokenType: "type",
 				token,
 				operation,
+				location: {
+					startAt,
+					endAt: reader.getIndex(),
+				},
 			} satisfies Token
 		}
 
@@ -45,6 +51,10 @@ export namespace Type {
 			tokenType: "type",
 			token,
 			operation: null,
+			location: {
+				startAt,
+				endAt: reader.getIndex(),
+			},
 		} satisfies Token
 	}
 }

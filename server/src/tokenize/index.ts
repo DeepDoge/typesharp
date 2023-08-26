@@ -5,6 +5,13 @@ import "./topLevelToken"
 import { Block } from "./blockToken"
 import { ScriptReader } from "./reader"
 
+export type TokenLocation = {
+	location: {
+		startAt: number
+		endAt: number
+	}
+}
+
 export function tokenize(script: string) {
 	const reader = ScriptReader.create(script)
 	return Block.expect(reader, true)

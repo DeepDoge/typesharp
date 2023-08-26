@@ -1,3 +1,4 @@
+import type { TokenLocation } from "."
 import { FunctionCall } from "./functionCallToken"
 import { Literal } from "./literalToken"
 import { ScriptReader } from "./reader"
@@ -5,7 +6,7 @@ import { ValueOperation } from "./valueOperationToken"
 import { VariableName } from "./variableNameToken"
 
 export namespace Value {
-	export type Token = {
+	export type Token = TokenLocation & {
 		tokenType: "value"
 		token: Exclude<ReturnType<(typeof valueTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
 		operation: ValueOperation.Token | null
@@ -15,6 +16,7 @@ export namespace Value {
 
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
+		const startAt = reader.getIndex()
 
 		const checkpoint = reader.checkpoint()
 		let token: Token["token"] | null = null
@@ -40,6 +42,10 @@ export namespace Value {
 				tokenType: "value",
 				token,
 				operation,
+				location: {
+					startAt,
+					endAt: reader.getIndex(),
+				},
 			} satisfies Token
 		} else checkpoint2.restore()
 
@@ -47,6 +53,10 @@ export namespace Value {
 			tokenType: "value",
 			token,
 			operation: null,
+			location: {
+				startAt,
+				endAt: reader.getIndex(),
+			},
 		} satisfies Token
 	}
 }

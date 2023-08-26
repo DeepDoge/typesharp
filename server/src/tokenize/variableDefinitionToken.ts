@@ -1,9 +1,10 @@
+import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
 import { Type } from "./typeToken"
 import { Value } from "./valueToken"
 
 export namespace VariableDefinition {
-	export type Token = {
+	export type Token = TokenLocation & {
 		tokenType: "variableDefinition"
 		name: string
 		type: Type.Token | null
@@ -12,6 +13,7 @@ export namespace VariableDefinition {
 
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
+		const startAt = reader.getIndex()
 
 		const keyword = "var" as const
 		if (!reader.expectString(keyword)) return null
@@ -49,6 +51,10 @@ export namespace VariableDefinition {
 			name,
 			type,
 			value,
+			location: {
+				startAt,
+				endAt: reader.getIndex(),
+			},
 		} satisfies Token
 	}
 }

@@ -9,6 +9,8 @@ export type ScriptReader = {
 	next(): string | null
 	peek(): string | null
 
+	getIndex(): number
+
 	syntaxError(message: string): ScriptReader.SyntaxError
 }
 export namespace ScriptReader {
@@ -41,6 +43,9 @@ export namespace ScriptReader {
 			next() {
 				if (index >= script.length) return null
 				return script[index++]
+			},
+			getIndex() {
+				return index
 			},
 			peek() {
 				if (index >= script.length) return null
