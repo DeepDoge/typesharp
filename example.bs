@@ -1025,3 +1025,7 @@ if we do this we wont need runtime check.
 
 tho also if compiler itself can say that its always a stack ref and never a heap ref, then compiler can do the same optimization itself.
 because of how our typing system works
+
+
+tho if we can determine if a ref is on the stack based on where its addresing and if its inside the stack's range
+then it would be better.
