@@ -11,10 +11,10 @@ export namespace TypeDefinition {
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 
-		const keyword = reader.expectString("type")
-		if (!keyword) return null
+		const keyword = "type" as const
+		if (!reader.expectString(keyword)) return null
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "var"`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
 
 		const name = reader.expectWord()
 		if (!name) return null

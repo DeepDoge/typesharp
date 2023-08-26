@@ -86,12 +86,15 @@ export namespace ScriptReader {
 				return expected
 			},
 			expectEndOfLine() {
+				const checkpoint = self.checkpoint()
 				self.skipWhitespace(true)
-				if (index === script.length - 1) return "\0"
-				if (script[index] === "\n") return "\n"
-				if (script[index] === "\r") return "\n"
-				if (script[index] === "\0") return "\0"
-				if (script[index] === ";") return ";"
+				const char = self.next()
+				if (!char) return "\0"
+				if (char === "\n") return "\n"
+				if (char === "\r") return "\n"
+				if (char === "\0") return "\0"
+				if (char === ";") return ";"
+				checkpoint.restore()
 				return null
 			},
 		}

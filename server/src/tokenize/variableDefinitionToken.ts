@@ -13,10 +13,10 @@ export namespace VariableDefinition {
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 
-		const keyword = reader.expectString("var")
-		if (!keyword) return null
+		const keyword = "var" as const
+		if (!reader.expectString(keyword)) return null
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "var"`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
 
 		const name = reader.expectWord()
 		if (!name) return null
@@ -38,7 +38,7 @@ export namespace VariableDefinition {
 		const equals = reader.expectString("=")
 		if (!equals) return error(reader.syntaxError(`Expected equals sign`))
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals sign`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace between equals sign and value`))
 
 		const value = Value.expect(reader)
 		if (!value) return error(reader.syntaxError(`Expected value`))

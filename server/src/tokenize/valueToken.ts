@@ -29,6 +29,7 @@ export namespace Value {
 		}
 		if (token === null) return null
 
+		const checkpoint2 = reader.checkpoint()
 		const hadWhitespaceBeforeOperation = reader.expectWhitespace()
 
 		const operation = ValueOperation.expect(reader)
@@ -40,7 +41,7 @@ export namespace Value {
 				token,
 				operation,
 			} satisfies Token
-		}
+		} else checkpoint2.restore()
 
 		return {
 			tokenType: "value",

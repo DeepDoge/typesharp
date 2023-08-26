@@ -10,13 +10,14 @@ export namespace Return {
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting return statement:\n\t${error.message}`)
 
-		if (!reader.expectString("return")) return null
+		const keyword = "return" as const
+		if (!reader.expectString(keyword)) return null
 
 		const hadWhitespaceBeforeValue = reader.expectWhitespace()
 
 		const value = Value.expect(reader)
 		if (value instanceof ScriptReader.SyntaxError) return error(value)
-		if (value && !hadWhitespaceBeforeValue) return error(reader.syntaxError(`Expected whitespace before value`))
+		if (value && !hadWhitespaceBeforeValue) return error(reader.syntaxError(`Expected whitespace between "${keyword}" keyword and value`))
 
 		return {
 			tokenType: "return",

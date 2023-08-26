@@ -13,18 +13,17 @@ export namespace Block {
 	): Token | ScriptReader.SyntaxError | (T extends true ? never : null) {
 		if (!ignoreCurlyBraces && !reader.expectString("{")) return null as never
 
+		reader.skipWhitespace()
+
 		const tokens: Token["tokens"] = []
 		while (true) {
 			reader.skipWhitespace()
 			const token = TopLevelToken.expect(reader)
-			if (!token) {
-				const char = reader.peek()
-				if (char === "}") break
-				if (char) return reader.syntaxError(`Unexpected character: ${char}`)
-				else break
-			}
-			if (token instanceof ScriptReader.SyntaxError) return token
-			tokens.push(token)
+			if (token) {
+				if (token instanceof ScriptReader.SyntaxError) return token
+				tokens.push(token)
+				if (!reader.expectEndOfLine()) return reader.syntaxError(`Expected end of line after token, go to next line or add a semicolon`)
+			} else break
 		}
 
 		reader.skipWhitespace()

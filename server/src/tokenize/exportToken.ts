@@ -13,9 +13,10 @@ export namespace Export {
 	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
 
-		if (!reader.expectString("export")) return null
+		const keyword = "export" as const
+		if (!reader.expectString(keyword)) return null
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "export"`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
 
 		const checkpoint = reader.checkpoint()
 		let token: Token["token"] | null = null
