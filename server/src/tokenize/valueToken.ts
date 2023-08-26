@@ -7,7 +7,7 @@ import { VariableName } from "./variableNameToken"
 export namespace Value {
 	export type Token = {
 		tokenType: "value"
-		token: VariableName.Token | FunctionCall.Token | Literal.Token
+		token: Exclude<ReturnType<(typeof valueTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
 		operation: Operation.Token | null
 	}
 
