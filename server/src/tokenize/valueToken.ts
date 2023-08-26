@@ -27,11 +27,12 @@ export namespace Value {
 		}
 		if (token === null) return null
 
-		scriptReader.skipWhitespace()
+		const hadWhitespaceBeforeOperation = scriptReader.expectWhitespace()
 
 		const operation = Operation.expect(scriptReader)
 		if (operation) {
 			if (operation instanceof Error) return error(operation)
+			if (!hadWhitespaceBeforeOperation) return error(new Error(`Expected whitespace before operator`))
 			return {
 				tokenType: "value",
 				token,
