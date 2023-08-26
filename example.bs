@@ -795,3 +795,233 @@ for (i from 0 to list.length - 1) {
 
 
 this whole LinkedList example not really valid code because we dont have any idea on how lifetimes will work
+
+
+
+
+
+
+
+
+tests on how would deallocation work, so by default we are stack first
+we know when stacks deallocate, its end of the scope
+so we are gonna make this behevior also default for heap so its consistent
+ok so i think the main point here is, making deallocation a requirement, and maybe picking the scope it should deallocate is the best way to go
+ok first think by default everything is on the stack, so how do we allocate on the heap, what is the syntax
+i think it should be a part of the type system, so we know what is on the stack and what is on the heap
+
+ok we already have `ref` keyword but this can means, reference to a value on the stack or heap, so we need to make this clear
+btw i wanna change the keywords, `typeof` and `ref` like its on c# so its more apperant, ref of what and typeof what
+
+var one: i64 = 1 // stack
+var value: ref(i64) = ref(one) // stack reference
+var value: typeof(i64) = typeof(1) // type
+
+so in our language ref(i64) is equivalent of &i64 or i64* in rust, and typeof(i64) is equivalent of typeof(Int64) in c#
+also ref(i64) is equivalent of ref Int64 in c#
+we dont want reference counting because it might cause leaks, and we dont want any other complex things. we want a way to enfroce deallocation
+
+there are two reasons why we use refs, one is referencing something, and the other one is, not copying big values
+we have to cover for these two cases
+
+
+var value: ref(i64) = ref(1) // stack reference
+equivalent of 
+var one = 1
+var value = ref(one)
+so ref(1) is a shorthand to both define a value anonymously and get a reference to it
+
+ok you know i said we should have a type that is saying us that something is on heap
+
+ok the problem with that is, lets say we have a function. saying this:
+func foo(value: ref(i64)) => {
+    // do something
+}
+we expect a ref, we dont care if its on the stack or heap, we just want a ref
+so maybe, we can both have stack(i64) and heap(i64) and they are both ref(i64)
+
+
+so like this
+
+var value: ref(i64) = stack(1)
+var value: ref(i64) = heap(1)
+var valueL heap(i64) = heap(1)
+var value: stack(i64) = stack(1)
+
+
+
+
+var value: ref(i64) | None = None
+
+func foo() => {
+    var one = 1
+    value = ref(one)
+}
+
+func bar() => {
+    var two = 2
+    value = ref(two) // this shouldnt work because and gets deallocated at the end of the scope
+    // so how do we make this work?, well we can bind the lifetime of `two` to `value`
+    two depends value // or some other syntax, but this is the idea
+    // one thing is on runtime, what allocated where can change, so we can have some goto points to set while compiling the code.
+    // so based on what runtime logic works, we can say jump here or there, so different deallocation strategies based on what runtime does 
+
+    // another thing to note here is, what if value already has a ref? well we can know that, and deallocate it before we set the new one
+    // tho idk
+    // ok deallocation occurs at the end of the scope, but we can pick which scope it should deallocate on based on picking a value on that scope
+    // that basic
+
+    so maybe like this
+
+    var two = 2 depends value
+    value = ref(two)
+
+    // so we can have a depends keyword, and we can say, this value depends on this other value, 
+    so when this other value gets deallocated, this value gets deallocated too
+    so everytime bar runs, every generated two gets deallocated, when value gets deallocated
+    so since we are setting the value in the funciton, when ever value changes, old value gets deallocated right
+    so when ever value changes, this will deallocate two, if also the scope of bar ends.
+    tho this is wrong, only heap stuff can depend stuff
+
+    var two = 2
+    value = heap(two)
+
+    ok new idea, when ever heap() runs, it return value should be set to something
+    so here value copy of two, on the heap, also depends on value
+    so now heap copy of two is connected to value, so when ever value gets deallocated, two gets deallocated too
+}
+
+foo()
+bar()
+
+
+
+ok f*ck it all new path
+
+
+var value: ref i64 = heap 0 // allocates a space on heap with the size of i64
+
+func foo() => {
+    so when we do
+    value = 2
+    we just change the value on the memory that is already allocated
+}
+
+so
+
+func bar(n: ref i64) => {
+    print(n)
+}
+
+bar(ref value) // prints 0
+
+foo()
+
+bar(ref value) // prints 2
+
+if we wanna change the ref itself, not write to where ref points to.
+
+var other = 69
+value = ref other // ok one thing here, deallocation doesnt make sense with current syntax, 
+                        but if value has a heap ref, changing where value points to, should deallocate the old value
+
+also this isnt allowed
+
+{
+    var other = 69
+    value = ref other // this is not allowed, because other will be deallocated at the end of the scope and value is out of scope
+
+    value = heap other // this is allowed, because now other is copied on the heap
+        heap keyword returns a ref, ref keyword gets a ref of a value
+        if ref typed value is being set by another value of same type, it changes the value on the memory
+        but if a ref typed value is being set by a ref of the same type, it changes where the ref points to
+        so when a value is a ref type, it acts as normal if its not a ref, only thing different is you can set a ref to it.
+        refs can have a flag that says if it is on the stack or heap, so we can know if we should deallocate it or not
+        ok we should make ref, a union, in the type system, its eaither a heap ref or stack ref.
+}
+
+another thing
+
+if a value is like this:
+var value: ref i64 | None = None // so its either a None, or a ref to a i64
+so if i set value to None, it should deallocate the ref if it has a `heap ref`
+so if value is changes, not where it points to, we deallocate the older `heap ref` always
+
+but this can be problamatic, example:
+
+var value: ref i64 = heap 0
+var foo: ref i64 | None = None
+
+{
+    var other: ref i64 = ref value
+    other = heap 1 // this in theory will also deallocate value, which is not good. because other had the type `heap ref`
+        so instead of `heap ref` and `stack ref` types, we should have two other types, and says, deallocate me on change or scope end
+        other says not do anything about me
+
+        also without doing this at the end of the scope, this will try to deallocate other, because it is a `heap ref`
+        we need a different type of ref that says "i dont deallocate automatically, so compile knows that it can bind allocations to it, so doesnt allow"
+        it can just purely be used to store refs, and `heap ref` only why? because if it can be a stack ref, we dont know its life time.
+        so it should say "i only store refs to heap, and i dont deallocate them, so dont set stuff to me that will deallocate at the end of this stack."
+
+        ok new definition "i only accepts refs that will not get deallocated at the end of this scope"
+
+    foo = ref other // also this should be allowed, and it will be decided on compile time
+}
+
+
+so based on above, this is what we need:
+
+
+var outer: ref i64 | None = None
+{
+    var value: ref i64 = heap 0
+    var foo: ref i64 | None = None
+
+    foo = ref value // they are in the same scope so allowed
+
+    outer = ref value // this is not allowed, because outer is out of scope of value and value will be deallocated at the end of the scope
+    outer = heap value // this is allowed, because its completely a new allocation, a copy
+
+    var baz = ref outer // this is not allowed because baz would deallocate outer at the end of the scope and outer is not in this scope
+
+    {
+        var other: special ref i64 = ref value // this is allowed because other is a `special ref` and it will not get deallocated at the end of this scope
+        other = heap 1 // this is not allowed, because other only allows refs that will not get deallocated at the end of this scope
+
+        var bar = heap 2
+        other = ref bar // also not allowed because bar will get deallocated at the end of this scope
+
+        foo = ref other // this is allowed, because other is a `special ref` and it will not get deallocated at the end of this scope
+
+        // we dont do anything about other because its a `special ref`
+    }
+
+    // deallocates value, and foo if they are `heap ref`
+}
+// deallocates outer if it is `heap ref`
+
+ok so i found the name for `special ref`, its, calm ref, because it doesnt get deallocated at the end of the scope, it stays calm
+since its calm we dont trust it with deallocation, so we dont allow it to be set by a ref that will get deallocated at the end of the scope
+
+unlike `heap ref` or `stack ref`, `calm ref` doesnt have to be on runtime, its only needed on compile time, so we can know if we can set it or not
+
+also if we specificly say that a ref is `heap ref` or `stack ref` we know what its 
+so we dont need to check, what its before setting it or at the end of the scope
+
+so we can have this
+
+var value: heap ref i64 = heap 0
+
+or
+
+var value: stack ref i64 = stack 0
+
+or 
+
+var other = 1
+var value: stack ref i64 = ref other
+
+if we do this we wont need runtime check.
+
+tho also if compiler itself can say that its always a stack ref and never a heap ref, then compiler can do the same optimization itself.
+because of how our typing system works
