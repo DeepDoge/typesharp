@@ -985,22 +985,22 @@ var outer: ref i64 | None = None
     var baz = ref outer // this is not allowed because baz would deallocate outer at the end of the scope and outer is not in this scope
 
     {
-        var other: special ref i64 = ref value // this is allowed because other is a `special ref` and it will not get deallocated at the end of this scope
+        var other: calm ref i64 = ref value // this is allowed because other is a `calm ref` and it will not get deallocated at the end of this scope
         other = heap 1 // this is not allowed, because other only allows refs that will not get deallocated at the end of this scope
 
         var bar = heap 2
         other = ref bar // also not allowed because bar will get deallocated at the end of this scope
 
-        foo = ref other // this is allowed, because other is a `special ref` and it will not get deallocated at the end of this scope
+        foo = ref other // this is allowed, because other is a `calm ref` and it will not get deallocated at the end of this scope
 
-        // we dont do anything about other because its a `special ref`
+        // we dont do anything about other because its a `calm ref`
     }
 
     // deallocates value, and foo if they are `heap ref`
 }
 // deallocates outer if it is `heap ref`
 
-ok so i found the name for `special ref`, its, calm ref, because it doesnt get deallocated at the end of the scope, it stays calm
+calm ref, because it doesnt get deallocated at the end of the scope, it stays calm
 since its calm we dont trust it with deallocation, so we dont allow it to be set by a ref that will get deallocated at the end of the scope
 
 unlike `heap ref` or `stack ref`, `calm ref` doesnt have to be on runtime, its only needed on compile time, so we can know if we can set it or not
