@@ -1,5 +1,6 @@
 import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
+import { Symbol } from "./symbolToken"
 import { TopLevelToken } from "./topLevelToken"
 
 export namespace Block {
@@ -13,7 +14,7 @@ export namespace Block {
 		ignoreCurlyBraces?: T
 	): Token | ScriptReader.SyntaxError | (T extends true ? never : null) {
 		const startAt = reader.getIndex()
-		if (!ignoreCurlyBraces && !reader.expectString("{")) return null as never
+		if (!ignoreCurlyBraces && !Symbol.expect(reader, "{")) return null as never
 
 		reader.skipWhitespace()
 
@@ -30,7 +31,7 @@ export namespace Block {
 
 		reader.skipWhitespace()
 
-		if (!ignoreCurlyBraces && !reader.expectString("}")) return reader.syntaxError(`Expected "}"`)
+		if (!ignoreCurlyBraces && !Symbol.expect(reader, "}")) return reader.syntaxError(`Expected "}"`)
 
 		return {
 			tokenType: "block",

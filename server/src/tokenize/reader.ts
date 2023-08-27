@@ -2,8 +2,6 @@ export type ScriptReader = {
 	checkpoint(): ScriptReader.Checkpoint
 	skipWhitespace(ignoreNewlines?: boolean): void
 	expectWhitespace(ignoreNewlines?: boolean): string | null
-	expectWord(): string | null
-	expectString(expected: string): string | null
 	expectEndOfLine(): string | null
 
 	next(): string | null
@@ -25,6 +23,8 @@ export namespace ScriptReader {
 			this.at = at
 		}
 	}
+
+	export type IsSyntaxErrorHandled<T> = [Extract<T, ScriptReader.SyntaxError>] extends [never] ? true : false
 
 	export function create(script: string): ScriptReader {
 		let index = 0
@@ -68,27 +68,6 @@ export namespace ScriptReader {
 					return char
 				}
 				return null
-			},
-			expectWord() {
-				// word starts with a letter, underscore, or dollar sign, and is followed by any number of letters, underscores, dollar signs, or numbers
-				const char = self.peek()
-				if (!char) return null
-				if (!/^[a-zA-Z_$]$/.test(char)) return null
-				let word = ""
-				while (true) {
-					const char = self.peek()
-					if (!char) break
-					if (!/^[a-zA-Z0-9_$]$/.test(char)) break
-					word += self.next()
-				}
-				return word
-			},
-			expectString(expected: string) {
-				for (const char of expected) {
-					if (self.peek() !== char) return null
-					self.next()
-				}
-				return expected
 			},
 			expectEndOfLine() {
 				const checkpoint = self.checkpoint()

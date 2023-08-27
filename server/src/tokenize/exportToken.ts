@@ -1,4 +1,5 @@
 import type { TokenLocation } from "."
+import { Keyword } from "./keywordToken"
 import { ScriptReader } from "./reader"
 import { TypeDefinition } from "./typeDefinitionToken"
 import { VariableDefinition } from "./variableDefinitionToken"
@@ -6,6 +7,7 @@ import { VariableDefinition } from "./variableDefinitionToken"
 export namespace Export {
 	export type Token = TokenLocation & {
 		tokenType: "export"
+		keyword: Keyword.Token<"export">
 		token: Exclude<ReturnType<(typeof exportableTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
 	}
 
@@ -15,8 +17,8 @@ export namespace Export {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const keyword = "export" as const
-		if (!reader.expectString(keyword)) return null
+		const keyword = Keyword.expect(reader, "export")
+		if (!keyword) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
 
@@ -34,6 +36,7 @@ export namespace Export {
 		if (token === null) return error(reader.syntaxError(`Expected exportable token`))
 		return {
 			tokenType: "export",
+			keyword,
 			token,
 			location: {
 				startAt,

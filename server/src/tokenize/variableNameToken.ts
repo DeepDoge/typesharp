@@ -1,16 +1,17 @@
 import type { TokenLocation } from "."
 import type { ScriptReader } from "./reader"
+import { Word } from "./wordToken"
 
 export namespace VariableName {
 	export type Token = TokenLocation & {
 		tokenType: "variableName"
-		name: string
+		name: Word.Token
 	}
 
-	export function expect(reader: ScriptReader): Token | null {
+	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
 		const startAt = reader.getIndex()
 
-		const name = reader.expectWord()
+		const name = Word.expect(reader)
 		if (!name) return null
 
 		return {

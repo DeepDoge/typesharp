@@ -1,11 +1,13 @@
 import type { TokenLocation } from "."
 import { ScriptReader } from "./reader"
+import { Symbol } from "./symbolToken"
 import { Value } from "./valueToken"
+import { Word } from "./wordToken"
 
 export namespace FunctionCall {
 	export type Token = TokenLocation & {
 		tokenType: "functionCall"
-		name: string
+		name: Word.Token
 		args: Value.Token[]
 	}
 
@@ -13,10 +15,11 @@ export namespace FunctionCall {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting function call:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const name = reader.expectWord()
+		const name = Word.expect(reader)
 		if (!name) return null
 
-		if (!reader.expectString("(")) return null
+		const open = Symbol.expect(reader, "(")
+		if (!open) return null
 
 		const args: Token["args"] = []
 		while (true) {
@@ -27,10 +30,11 @@ export namespace FunctionCall {
 			args.push(arg)
 
 			reader.skipWhitespace()
-			if (!reader.expectString(",")) break
+			if (!Symbol.expect(reader, ",")) break
 		}
 
-		if (!reader.expectString(")")) return error(reader.syntaxError(`Expected ")"`))
+		const close = Symbol.expect(reader, ")")
+		if (!close) return error(reader.syntaxError(`Expected closing parantheses`))
 
 		return {
 			tokenType: "functionCall",

@@ -1,11 +1,16 @@
 import type { TokenLocation } from "."
+import { Keyword } from "./keywordToken"
 import { ScriptReader } from "./reader"
+import { Symbol } from "./symbolToken"
 import { Type } from "./typeToken"
+import { Word } from "./wordToken"
 
 export namespace TypeDefinition {
 	export type Token = TokenLocation & {
 		tokenType: "typeDefinition"
-		name: string
+		keyword: Keyword.Token<"type">
+		name: Word.Token
+		equalSymbol: Symbol.Token<"=">
 		type: Type.Token
 	}
 
@@ -13,18 +18,18 @@ export namespace TypeDefinition {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const keyword = "type" as const
-		if (!reader.expectString(keyword)) return null
+		const keyword = Keyword.expect(reader, "type")
+		if (!keyword) return null
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword.keyword}"`))
 
-		const name = reader.expectWord()
+		const name = Word.expect(reader)
 		if (!name) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after name`))
 
-		const equals = reader.expectString("=")
-		if (!equals) return error(reader.syntaxError(`Expected equals sign`))
+		const equalSymbol = Symbol.expect(reader, "=")
+		if (!equalSymbol) return error(reader.syntaxError(`Expected equals sign`))
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals sign`))
 
@@ -34,7 +39,9 @@ export namespace TypeDefinition {
 
 		return {
 			tokenType: "typeDefinition",
+			keyword,
 			name,
+			equalSymbol,
 			type,
 			location: {
 				startAt,
