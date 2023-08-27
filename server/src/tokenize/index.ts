@@ -5,8 +5,12 @@ import "./topLevelToken"
 import { Block } from "./blockToken"
 import { ScriptReader } from "./reader"
 
-export type TokenLocation = {
-	location: {
+export type Token<TName extends string, T> = T & {
+	tokenType: TName
+	location: Token.Location
+}
+export namespace Token {
+	export type Location = {
 		startAt: number
 		endAt: number
 	}

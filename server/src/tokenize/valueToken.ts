@@ -1,25 +1,26 @@
-import type { TokenLocation } from "."
-import { FunctionCall } from "./functionCallToken"
-import { Literal } from "./literalToken"
+import type { Token } from "."
+import { FunctionCallToken } from "./functionCallToken"
+import { LiteralToken } from "./literalToken"
 import { ScriptReader } from "./reader"
-import { ValueOperation } from "./valueOperationToken"
-import { VariableName } from "./variableNameToken"
+import { ValueOperationToken } from "./valueOperationToken"
+import { VariableNameToken } from "./variableNameToken"
 
-export namespace Value {
-	export type Token = TokenLocation & {
-		tokenType: "value"
-		token: Exclude<ReturnType<(typeof valueTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
-		operation: ValueOperation.Token | null
+export type ValueToken = Token<
+	"value",
+	{
+		token: Exclude<ReturnType<(typeof ValueToken.valueTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
+		operation: ValueOperationToken | null
 	}
+>
+export namespace ValueToken {
+	export const valueTokens = [FunctionCallToken, LiteralToken, VariableNameToken] as const
 
-	export const valueTokens = [FunctionCall, Literal, VariableName] as const
-
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+	export function expect(reader: ScriptReader): ValueToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const checkpoint = reader.checkpoint()
-		let token: Token["token"] | null = null
+		let token: ValueToken["token"] | null = null
 		for (const valueToken of valueTokens) {
 			checkpoint.restore()
 			const value = valueToken.expect(reader)
@@ -34,7 +35,7 @@ export namespace Value {
 		const checkpoint2 = reader.checkpoint()
 		const hadWhitespaceBeforeOperation = reader.expectWhitespace()
 
-		const operation = ValueOperation.expect(reader)
+		const operation = ValueOperationToken.expect(reader)
 		if (operation) {
 			if (operation instanceof ScriptReader.SyntaxError) return error(operation)
 			if (!hadWhitespaceBeforeOperation) return error(reader.syntaxError(`Expected whitespace before operator: "${operation.operator}"`))
@@ -46,7 +47,7 @@ export namespace Value {
 					startAt,
 					endAt: reader.getIndex(),
 				},
-			} satisfies Token
+			} satisfies ValueToken
 		} else checkpoint2.restore()
 
 		return {
@@ -57,6 +58,6 @@ export namespace Value {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token
+		} satisfies ValueToken
 	}
 }

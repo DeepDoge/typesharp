@@ -1,13 +1,14 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import type { ScriptReader } from "./reader"
 
-export namespace Symbol {
-	export type Token<TSymbol extends string> = TokenLocation & {
-		tokenType: "symbol"
+export type SymbolToken<TSymbol extends string> = Token<
+	"symbol",
+	{
 		symbol: TSymbol
 	}
-
-	export function expect<const TSymbol extends string>(reader: ScriptReader, symbol: TSymbol): Token<TSymbol> | null {
+>
+export namespace SymbolToken {
+	export function expect<const TSymbol extends string>(reader: ScriptReader, symbol: TSymbol): SymbolToken<TSymbol> | null {
 		const startAt = reader.getIndex()
 
 		for (const char of symbol) {
@@ -22,6 +23,6 @@ export namespace Symbol {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token<TSymbol>
+		} satisfies SymbolToken<TSymbol>
 	}
 }

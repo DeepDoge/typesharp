@@ -1,17 +1,13 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import type { ScriptReader } from "./reader"
-import { Word } from "./wordToken"
+import { WordToken } from "./wordToken"
 
-export namespace TypeName {
-	export type Token = TokenLocation & {
-		tokenType: "typeName"
-		name: Word.Token
-	}
-
-	export function expect(reader: ScriptReader): Token | null {
+export type TypeNameToken = Token<"typeName", { name: WordToken }>
+export namespace TypeNameToken {
+	export function expect(reader: ScriptReader): TypeNameToken | null {
 		const startAt = reader.getIndex()
 
-		const name = Word.expect(reader)
+		const name = WordToken.expect(reader)
 		if (!name) return null
 
 		return {
@@ -21,6 +17,6 @@ export namespace TypeName {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token
+		} satisfies TypeNameToken
 	}
 }

@@ -1,23 +1,26 @@
-import { Keyword } from "./keywordToken"
+import type { Token } from "."
+import { KeywordToken } from "./keywordToken"
 import { ScriptReader } from "./reader"
-import { Value } from "./valueToken"
+import { ValueToken } from "./valueToken"
 
-export namespace Return {
-	export type Token = {
-		tokenType: "return"
-		keyword: Keyword.Token<"return">
-		value: Value.Token | null
+export type ReturnToken = Token<
+	"return",
+	{
+		keyword: KeywordToken<"return">
+		value: ValueToken | null
 	}
-
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+>
+export namespace ReturnToken {
+	export function expect(reader: ScriptReader): ReturnToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting return statement:\n\t${error.message}`)
+		const startAt = reader.getIndex()
 
-		const keyword = Keyword.expect(reader, "return")
+		const keyword = KeywordToken.expect(reader, "return")
 		if (!keyword) return null
 
 		const hadWhitespaceBeforeValue = reader.expectWhitespace()
 
-		const value = Value.expect(reader)
+		const value = ValueToken.expect(reader)
 		if (value instanceof ScriptReader.SyntaxError) return error(value)
 		if (value && !hadWhitespaceBeforeValue) return error(reader.syntaxError(`Expected whitespace between "${keyword}" keyword and value`))
 
@@ -25,6 +28,10 @@ export namespace Return {
 			tokenType: "return",
 			keyword,
 			value,
-		} satisfies Token
+			location: {
+				startAt,
+				endAt: reader.getIndex(),
+			},
+		} satisfies ReturnToken
 	}
 }

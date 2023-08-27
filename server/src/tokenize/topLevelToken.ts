@@ -1,17 +1,18 @@
 import { Block } from "./blockToken"
-import { Export } from "./exportToken"
+import { ExportToken } from "./exportToken"
 import { ScriptReader } from "./reader"
-import { Return } from "./returnToken"
-import { TypeDefinition } from "./typeDefinitionToken"
-import { Type } from "./typeToken"
-import { Value } from "./valueToken"
+import { ReturnToken } from "./returnToken"
+import { TypeDefinitionToken } from "./typeDefinitionToken"
+import { TypeToken } from "./typeToken"
+import { ValueToken } from "./valueToken"
 import { VariableDefinition } from "./variableDefinitionToken"
 
+export type TopLevelToken = Exclude<ReturnType<TopLevelToken.Token["expect"]>, null | ScriptReader.SyntaxError>
 export namespace TopLevelToken {
-	export type Token = Exclude<ReturnType<(typeof tokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
-	export const tokens = [Block, Return, Export, VariableDefinition, TypeDefinition, Type, Value] as const
+	export const tokens = [Block, ReturnToken, ExportToken, VariableDefinition, TypeDefinitionToken, TypeToken, ValueToken] as const
+	export type Token = (typeof tokens)[number]
 
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+	export function expect(reader: ScriptReader): TopLevelToken | ScriptReader.SyntaxError | null {
 		const checkpoint = reader.checkpoint()
 		for (const token of tokens) {
 			checkpoint.restore()

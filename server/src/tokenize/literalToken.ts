@@ -1,12 +1,11 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import { ScriptReader } from "./reader"
-import { Symbol } from "./symbolToken"
-import { TypeName } from "./typeNameToken"
+import { SymbolToken } from "./symbolToken"
+import { TypeNameToken } from "./typeNameToken"
 
-export namespace Literal {
-	export type Token = Number.Token
-
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+export type LiteralToken = LiteralToken.Number
+export namespace LiteralToken {
+	export function expect(reader: ScriptReader): LiteralToken | ScriptReader.SyntaxError | null {
 		const numberLiteral = Number.expect(reader)
 		if (numberLiteral) {
 			if (numberLiteral instanceof ScriptReader.SyntaxError) return numberLiteral
@@ -15,18 +14,16 @@ export namespace Literal {
 		return null
 	}
 
-	export namespace Number {
-		export type Token = TokenLocation & {
-			tokenType: "literalNumber"
+	export type Number = Token<
+		"literalNumber",
+		{
 			value: string
-			satisfies: {
-				colonSymbol: Symbol.Token<":">
-				type: TypeName.Token
-			} | null
+			satisfies: TypeNameToken | null
 			isFloat: boolean
 		}
-
-		export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+	>
+	export namespace Number {
+		export function expect(reader: ScriptReader): Number | ScriptReader.SyntaxError | null {
 			const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting number literal:\n\t${error.message}`)
 			const startAt = reader.getIndex()
 
@@ -46,14 +43,14 @@ export namespace Literal {
 
 			if (value === "") return null
 
-			let satisfies: Token["satisfies"] = null
-			const colon = Symbol.expect(reader, ":")
+			let satisfies: Number["satisfies"] = null
+			const colon = SymbolToken.expect(reader, ":")
 			if (colon) {
 				if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after colon`))
-				const typeName = TypeName.expect(reader)
-				if (!typeName) return error(reader.syntaxError(`Expected type name after colon`))
-				if (typeName instanceof ScriptReader.SyntaxError) return error(typeName)
-				satisfies = { colonSymbol: colon, type: typeName }
+				const typeToken = TypeNameToken.expect(reader)
+				if (!typeToken) return error(reader.syntaxError(`Expected type name after colon`))
+				if (typeToken instanceof ScriptReader.SyntaxError) return error(typeToken)
+				satisfies = typeToken
 			}
 
 			return {
@@ -65,7 +62,7 @@ export namespace Literal {
 					startAt,
 					endAt: reader.getIndex(),
 				},
-			} satisfies Token
+			} satisfies Number
 		}
 	}
 }

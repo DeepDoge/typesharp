@@ -1,29 +1,31 @@
-import type { TokenLocation } from "."
-import { Keyword } from "./keywordToken"
+import type { Token } from "."
+import { KeywordToken } from "./keywordToken"
 import { ScriptReader } from "./reader"
-import { TypeDefinition } from "./typeDefinitionToken"
+import { TypeDefinitionToken } from "./typeDefinitionToken"
 import { VariableDefinition } from "./variableDefinitionToken"
 
-export namespace Export {
-	export type Token = TokenLocation & {
-		tokenType: "export"
-		keyword: Keyword.Token<"export">
-		token: Exclude<ReturnType<(typeof exportableTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
+export type ExportToken = Token<
+	"export",
+	{
+		keyword: KeywordToken<"export">
+		token: Exclude<ReturnType<ExportToken.ExportableToken["expect"]>, null | ScriptReader.SyntaxError>
 	}
+>
+export namespace ExportToken {
+	export const exportableTokens = [VariableDefinition, TypeDefinitionToken] as const
+	export type ExportableToken = (typeof exportableTokens)[number]
 
-	const exportableTokens = [VariableDefinition, TypeDefinition] as const
-
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+	export function expect(reader: ScriptReader): ExportToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const keyword = Keyword.expect(reader, "export")
+		const keyword = KeywordToken.expect(reader, "export")
 		if (!keyword) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
 
 		const checkpoint = reader.checkpoint()
-		let token: Token["token"] | null = null
+		let token: ExportToken["token"] | null = null
 		for (const exportableToken of exportableTokens) {
 			checkpoint.restore()
 			const value = exportableToken.expect(reader)
@@ -42,6 +44,6 @@ export namespace Export {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token
+		} satisfies ExportToken
 	}
 }

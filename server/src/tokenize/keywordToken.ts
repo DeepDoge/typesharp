@@ -1,13 +1,9 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import type { ScriptReader } from "./reader"
 
-export namespace Keyword {
-	export type Token<TKeyword extends string> = TokenLocation & {
-		tokenType: "keyword"
-		keyword: TKeyword
-	}
-
-	export function expect<const TKeyword extends string>(reader: ScriptReader, keyword: TKeyword): Token<TKeyword> | null {
+export type KeywordToken<TKeyword extends string> = Token<"keyword", { keyword: TKeyword }>
+export namespace KeywordToken {
+	export function expect<const TKeyword extends string>(reader: ScriptReader, keyword: TKeyword): KeywordToken<TKeyword> | null {
 		const startAt = reader.getIndex()
 
 		for (const char of keyword) {
@@ -22,6 +18,6 @@ export namespace Keyword {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token<TKeyword>
+		} satisfies KeywordToken<TKeyword>
 	}
 }

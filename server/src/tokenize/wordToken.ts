@@ -1,13 +1,14 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import type { ScriptReader } from "./reader"
 
-export namespace Word {
-	export type Token = TokenLocation & {
-		tokenType: "word"
+export type WordToken = Token<
+	"word",
+	{
 		word: string
 	}
-
-	export function expect(reader: ScriptReader): Token | null {
+>
+export namespace WordToken {
+	export function expect(reader: ScriptReader): WordToken | null {
 		const startAt = reader.getIndex()
 
 		const char = reader.peek()
@@ -28,6 +29,6 @@ export namespace Word {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token
+		} satisfies WordToken
 	}
 }

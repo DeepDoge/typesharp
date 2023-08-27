@@ -1,5 +1,5 @@
 import "../tokenize/topLevelToken"
 
-import type { Block } from "../tokenize/blockToken"
+import type { BlockToken } from "../tokenize/blockToken"
 
-export function parse(block: Block.Token) {}
+export function parse(block: BlockToken) {}

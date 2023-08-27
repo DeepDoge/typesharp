@@ -1,39 +1,40 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import { ScriptReader } from "./reader"
-import { Symbol } from "./symbolToken"
-import { Value } from "./valueToken"
-import { Word } from "./wordToken"
+import { SymbolToken } from "./symbolToken"
+import { ValueToken } from "./valueToken"
+import { WordToken } from "./wordToken"
 
-export namespace FunctionCall {
-	export type Token = TokenLocation & {
-		tokenType: "functionCall"
-		name: Word.Token
-		args: Value.Token[]
+export type FunctionCallToken = Token<
+	"functionCall",
+	{
+		name: WordToken
+		args: ValueToken[]
 	}
-
-	export function expect(reader: ScriptReader): Token | ScriptReader.SyntaxError | null {
+>
+export namespace FunctionCallToken {
+	export function expect(reader: ScriptReader): FunctionCallToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting function call:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const name = Word.expect(reader)
+		const name = WordToken.expect(reader)
 		if (!name) return null
 
-		const open = Symbol.expect(reader, "(")
+		const open = SymbolToken.expect(reader, "(")
 		if (!open) return null
 
-		const args: Token["args"] = []
+		const args: FunctionCallToken["args"] = []
 		while (true) {
 			reader.skipWhitespace()
-			const arg = Value.expect(reader)
+			const arg = ValueToken.expect(reader)
 			if (!arg) break
 			if (arg instanceof ScriptReader.SyntaxError) return error(arg)
 			args.push(arg)
 
 			reader.skipWhitespace()
-			if (!Symbol.expect(reader, ",")) break
+			if (!SymbolToken.expect(reader, ",")) break
 		}
 
-		const close = Symbol.expect(reader, ")")
+		const close = SymbolToken.expect(reader, ")")
 		if (!close) return error(reader.syntaxError(`Expected closing parantheses`))
 
 		return {
@@ -44,6 +45,6 @@ export namespace FunctionCall {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token
+		} satisfies FunctionCallToken
 	}
 }

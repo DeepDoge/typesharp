@@ -1,24 +1,20 @@
-import type { TokenLocation } from "."
+import type { Token } from "."
 import { ScriptReader } from "./reader"
-import { Symbol } from "./symbolToken"
+import { SymbolToken } from "./symbolToken"
 import { TopLevelToken } from "./topLevelToken"
 
+export type BlockToken = Token<"block", { tokens: TopLevelToken[] }>
 export namespace Block {
-	export type Token = TokenLocation & {
-		tokenType: "block"
-		tokens: TopLevelToken.Token[]
-	}
-
 	export function expect<T extends boolean>(
 		reader: ScriptReader,
 		ignoreCurlyBraces?: T
-	): Token | ScriptReader.SyntaxError | (T extends true ? never : null) {
+	): BlockToken | ScriptReader.SyntaxError | (T extends true ? never : null) {
 		const startAt = reader.getIndex()
-		if (!ignoreCurlyBraces && !Symbol.expect(reader, "{")) return null as never
+		if (!ignoreCurlyBraces && !SymbolToken.expect(reader, "{")) return null as never
 
 		reader.skipWhitespace()
 
-		const tokens: Token["tokens"] = []
+		const tokens: BlockToken["tokens"] = []
 		while (true) {
 			reader.skipWhitespace()
 			const token = TopLevelToken.expect(reader)
@@ -31,7 +27,7 @@ export namespace Block {
 
 		reader.skipWhitespace()
 
-		if (!ignoreCurlyBraces && !Symbol.expect(reader, "}")) return reader.syntaxError(`Expected "}"`)
+		if (!ignoreCurlyBraces && !SymbolToken.expect(reader, "}")) return reader.syntaxError(`Expected "}"`)
 
 		return {
 			tokenType: "block",
@@ -40,6 +36,6 @@ export namespace Block {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies Token
+		} satisfies BlockToken
 	}
 }
