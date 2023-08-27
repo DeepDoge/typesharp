@@ -1,5 +1,3 @@
-import "../tokenize/topLevelToken"
+import type { TopLevelToken } from "../tokenize/topLevelToken"
 
-import type { BlockToken } from "../tokenize/blockToken"
-
-export function parse(block: BlockToken) {}
+export function parse(tokens: TopLevelToken.Token[]) {}

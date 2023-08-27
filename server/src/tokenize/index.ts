@@ -18,5 +18,8 @@ export namespace Token {
 
 export function tokenize(script: string) {
 	const reader = ScriptReader.create(script)
-	return Block.expect(reader, true)
+	const result = Block.expect(reader, true)
+	if (!result) return []
+	if (result instanceof ScriptReader.SyntaxError) return result
+	return result.tokens
 }

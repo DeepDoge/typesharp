@@ -31,6 +31,7 @@ export namespace TypeToken {
 		}
 		if (token === null) return null
 
+		const checkpoint2 = reader.checkpoint()
 		const hadWhitespaceBeforeOperation = reader.expectWhitespace()
 
 		const operation = TypeOperationToken.expect(reader)
@@ -46,7 +47,7 @@ export namespace TypeToken {
 					endAt: reader.getIndex(),
 				},
 			} satisfies TypeToken
-		}
+		} else checkpoint2.restore()
 
 		return {
 			tokenType: "type",

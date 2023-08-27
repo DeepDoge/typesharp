@@ -38,10 +38,9 @@ export namespace VariableDefinition {
 			if (!typeToken) return error(reader.syntaxError(`Expected type name after colon`))
 			if (typeToken instanceof ScriptReader.SyntaxError) return error(typeToken)
 			type = typeToken
-		} else {
-			beforeColorCheckpoint.restore()
-			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after name`))
-		}
+		} else beforeColorCheckpoint.restore()
+
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace before equals sign`))
 
 		const equals = SymbolToken.expect(reader, "=")
 		if (!equals) return error(reader.syntaxError(`Expected equals sign`))
