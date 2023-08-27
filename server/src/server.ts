@@ -104,7 +104,7 @@ function getDocumentSettings(resource: string): Thenable<ExtensionSettings> {
 	if (!result) {
 		result = connection.workspace.getConfiguration({
 			scopeUri: resource,
-			section: "breezeScriptLanguageServer",
+			section: "bullScriptLanguageServer",
 		})
 		documentSettings.set(resource, result)
 	}
@@ -165,6 +165,16 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 		diagnostics.push(diagnostic)
 	}
 
+	diagnostics.push({
+		range: {
+			start: { line: 0, character: 0 },
+			end: { line: 0, character: 0 },
+		},
+		message: "Information",
+		source: "ex",
+		code: "1234",
+	})
+
 	// Send the computed diagnostics to VSCode.
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
 }
@@ -179,11 +189,16 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
 	// The pass parameter contains the position of the text document in
 	// which code complete got requested. For the example we ignore this
 	// info and always provide the same completion items.
+	const { line, character } = _textDocumentPosition.position
+
 	return [
 		{
-			label: "TypeScript",
-			kind: CompletionItemKind.Text,
-			data: 1,
+			label: "TypeScriptt",
+			kind: CompletionItemKind.Interface,
+			data: {
+				cssClass: "interface-item",
+			},
+			documentation: `Line: ${line} Character: ${character}`,
 		},
 		{
 			label: "JavaScript",
@@ -196,13 +211,6 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
 // This handler resolves additional information for the item selected in
 // the completion list.
 connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
-	if (item.data === 1) {
-		item.detail = "TypeScript details"
-		item.documentation = "TypeScript documentation"
-	} else if (item.data === 2) {
-		item.detail = "JavaScript details"
-		item.documentation = "JavaScript documentation"
-	}
 	return item
 })
 

@@ -42,14 +42,14 @@ export namespace ScriptReader {
 			},
 			next() {
 				if (index >= script.length) return null
-				return script[index++]
+				return script[index++]!
 			},
 			getIndex() {
 				return index
 			},
 			peek() {
 				if (index >= script.length) return null
-				return script[index]
+				return script[index]!
 			},
 			skipWhitespace(ignoreNewlines = false) {
 				while (true) {
