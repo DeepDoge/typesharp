@@ -2,21 +2,11 @@ import { tokenize } from "./tokenize"
 import { ScriptReader } from "./tokenize/reader"
 
 const script = `
-    return 123
-    export var a: i64 = 123
-    type Foo = i64 | i32
-    export type Bar = Foo | 123: i32
-    
     {
-        var a = 1 ; var b = 2
-        var c = 3
+
+        *
     }
-
     var a = 1
-    var b = 2
-    var c = a + b
-
-    123: i32
 `
 
 const result = tokenize(script)

@@ -57,12 +57,13 @@
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"dev": "run-p --race watch:*",
 		"format": "prettier -w ./",
+		"test": "tsx ./server/src/test.ts",
+		"watch:test": "tsx --watch ./server/src/test.ts",
+		"compile": "run-s compile-*",
 		"compile-server": "tsc -b ./server",
 		"watch:compile-server": "tsc -b -w ./server",
 		"compile-client": "tsc -b ./client",
-		"watch:compile-client": "tsc -b -w ./client",
-		"test": "tsx ./server/src/test.ts",
-		"watch:test": "tsx --watch ./server/src/test.ts"
+		"watch:compile-client": "tsc -b -w ./client"
 	},
 	"devDependencies": {
 		"@types/mocha": "^9.1.0",

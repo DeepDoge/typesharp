@@ -22,6 +22,7 @@ export namespace TopLevelToken {
 				return resultToken
 			}
 		}
+		checkpoint.restore()
 		return null
 	}
 }

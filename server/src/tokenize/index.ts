@@ -5,7 +5,7 @@ import "./topLevelToken"
 import { Block } from "./blockToken"
 import { ScriptReader } from "./reader"
 
-export type Token<TName extends string, T> = T & {
+export type Token<TName extends string = string, T = { [key: PropertyKey]: unknown }> = T & {
 	tokenType: TName
 	location: Token.Location
 }

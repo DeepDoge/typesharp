@@ -14,6 +14,8 @@ import {
 } from "vscode-languageserver/node"
 
 import { TextDocument } from "vscode-languageserver-textdocument"
+import { tokenize, type Token } from "./tokenize"
+import { ScriptReader } from "./tokenize/reader"
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -123,59 +125,71 @@ documents.onDidChangeContent((change) => {
 })
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
 	const settings = await getDocumentSettings(textDocument.uri)
-
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText()
-	const pattern = /\b[A-Z]{2,}\b/g
-	let m: RegExpExecArray | null
-
-	let problems = 0
 	const diagnostics: Diagnostic[] = []
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Warning,
+
+	const script = textDocument.getText()
+
+	// I don't know how to use this LSP sh*t atm, so I'm just gonna abuse diagnostics for now
+	// TODO: Use LSP properly
+	function analyzeToken(token: Token) {
+		const startLine = script.substring(0, token.location.startAt).split("\n").length - 1
+		const startColumn = script.substring(0, token.location.startAt).split("\n").pop()!.length
+
+		const endLine = script.substring(0, token.location.endAt).split("\n").length - 1
+		const endColumn = script.substring(0, token.location.endAt).split("\n").pop()!.length
+
+		diagnostics.push({
+			severity: DiagnosticSeverity.Information,
 			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length),
+				start: { line: startLine, character: startColumn },
+				end: { line: endLine, character: endColumn },
 			},
-			message: `${m[0]} is all uppercase.`,
-			source: "ex",
+			message: `Token type: ${token.tokenType}`,
+		})
+
+		const entries = Object.entries(token)
+		for (const [key, value] of entries) {
+			if (typeof value === "object" && value !== null) {
+				if (Array.isArray(value)) {
+					const arr = value as unknown[]
+					for (const item of arr) {
+						if (typeof item !== "object" || item == null || !("tokenType" in item)) continue
+						const token = item as Token
+						analyzeToken(token)
+					}
+				} else if ("tokenType" in value) {
+					const token = value as Token
+					analyzeToken(token)
+				}
+			}
 		}
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range),
-					},
-					message: "Spelling matters",
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range),
-					},
-					message: "Particularly for names",
-				},
-			]
-		}
-		diagnostics.push(diagnostic)
 	}
 
-	diagnostics.push({
-		range: {
-			start: { line: 0, character: 0 },
-			end: { line: 0, character: 0 },
-		},
-		message: "Information",
-		source: "ex",
-		code: "1234",
-	})
+	const result = tokenize(script)
+	if (result instanceof ScriptReader.SyntaxError) {
+		const startLine = script.substring(0, result.at).split("\n").length - 1
+		const startColumn = script.substring(0, result.at).split("\n").pop()!.length
 
-	// Send the computed diagnostics to VSCode.
+		const endLine = script.substring(0, result.at + 1).split("\n").length - 1
+		const endColumn = script
+			.substring(0, result.at + 1)
+			.split("\n")
+			.pop()!.length
+
+		diagnostics.push({
+			severity: DiagnosticSeverity.Error,
+			range: {
+				start: { line: startLine, character: startColumn },
+				end: { line: endLine, character: endColumn },
+			},
+			message: result.message,
+		})
+	} else {
+		console.log(JSON.stringify(result, null, "\t"))
+		result.forEach(analyzeToken)
+	}
+
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
 }
 

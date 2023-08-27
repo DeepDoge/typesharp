@@ -18,16 +18,20 @@ export namespace Block {
 		while (true) {
 			reader.skipWhitespace()
 			const token = TopLevelToken.expect(reader)
-			if (token) {
-				if (token instanceof ScriptReader.SyntaxError) return token
-				tokens.push(token)
-				if (!reader.expectEndOfLine()) return reader.syntaxError(`Expected end of line after token, go to next line or add a semicolon`)
-			} else break
+			if (!token) {
+				reader.skipWhitespace()
+				if (ignoreCurlyBraces) {
+					if (reader.peek() === null) break
+					return reader.syntaxError(`Unexpected token "${reader.peek()}"`)
+				} else {
+					if (SymbolToken.expect(reader, "}")) break
+					return reader.syntaxError(`Expected token or "}", got: "${reader.peek()}"`)
+				}
+			}
+			if (token instanceof ScriptReader.SyntaxError) return token
+			tokens.push(token)
+			if (!reader.expectEndOfLine()) return reader.syntaxError(`Expected end of line after token, go to next line or add a semicolon`)
 		}
-
-		reader.skipWhitespace()
-
-		if (!ignoreCurlyBraces && !SymbolToken.expect(reader, "}")) return reader.syntaxError(`Expected "}"`)
 
 		return {
 			tokenType: "block",

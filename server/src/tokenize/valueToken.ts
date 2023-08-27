@@ -38,7 +38,7 @@ export namespace ValueToken {
 		const operation = ValueOperationToken.expect(reader)
 		if (operation) {
 			if (operation instanceof ScriptReader.SyntaxError) return error(operation)
-			if (!hadWhitespaceBeforeOperation) return error(reader.syntaxError(`Expected whitespace before operator: "${operation.operator}"`))
+			if (!hadWhitespaceBeforeOperation) return error(reader.syntaxError(`Expected whitespace before operator: "${operation.operator.symbol}"`))
 			return {
 				tokenType: "value",
 				token,
