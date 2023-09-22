@@ -22,7 +22,7 @@
 	"contributes": {
 		"languages": [
 			{
-				"id": "bullScript",
+				"id": "bull-script",
 				"extensions": [
 					".bs"
 				]
@@ -76,5 +76,8 @@
 		"prettier-plugin-organize-imports": "^3.2.2",
 		"tsx": "^3.12.7",
 		"typescript": "^5.0.2"
+	},
+	"dependencies": {
+		"vscode-languageserver": "^9.0.0"
 	}
 }

@@ -4,6 +4,9 @@ import { WordToken } from "./wordToken"
 
 export type VariableNameToken = Token<"variableName", { name: WordToken }>
 export namespace VariableNameToken {
+	export function is(value: Token): value is VariableNameToken {
+		return value.tokenType === "variableName"
+	}
 	export function expect(reader: ScriptReader): VariableNameToken | ScriptReader.SyntaxError | null {
 		const startAt = reader.getIndex()
 

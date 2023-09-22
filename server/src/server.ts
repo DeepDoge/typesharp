@@ -1,13 +1,21 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-import type { CompletionItem, Diagnostic, InitializeParams, InitializeResult, TextDocumentPositionParams } from "vscode-languageserver/node"
+import "./tokenize"
+
+import type {
+	CompletionItem,
+	Diagnostic,
+	InitializeParams,
+	InitializeResult,
+	SemanticTokens,
+	TextDocumentPositionParams,
+} from "vscode-languageserver/node"
 import {
 	CompletionItemKind,
 	DiagnosticSeverity,
-	DidChangeConfigurationNotification,
 	ProposedFeatures,
+	SemanticTokenModifiers,
+	SemanticTokenTypes,
+	SemanticTokensRegistrationType,
+	SemanticTokensRequest,
 	TextDocumentSyncKind,
 	TextDocuments,
 	createConnection,
@@ -15,36 +23,22 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { tokenize, type Token } from "./tokenize"
+import { KeywordToken } from "./tokenize/keywordToken"
+import { LiteralToken } from "./tokenize/literalToken"
 import { ScriptReader } from "./tokenize/reader"
+import { SymbolToken } from "./tokenize/symbolToken"
+import { TypeNameToken } from "./tokenize/typeNameToken"
+import { VariableNameToken } from "./tokenize/variableNameToken"
 
-// Create a connection for the server, using Node's IPC as a transport.
-// Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all)
-
-// Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
 
-let hasConfigurationCapability = false
 let hasWorkspaceFolderCapability = false
-let hasDiagnosticRelatedInformationCapability = false
 
 connection.onInitialize((params: InitializeParams) => {
-	const capabilities = params.capabilities
-
-	// Does the client support the `workspace/configuration` request?
-	// If not, we fall back using global settings.
-	hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration)
-	hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders)
-	hasDiagnosticRelatedInformationCapability = !!(
-		capabilities.textDocument &&
-		capabilities.textDocument.publishDiagnostics &&
-		capabilities.textDocument.publishDiagnostics.relatedInformation
-	)
-
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
-			// Tell the client that this server supports code completion.
 			completionProvider: {
 				resolveProvider: true,
 			},
@@ -60,78 +54,56 @@ connection.onInitialize((params: InitializeParams) => {
 	return result
 })
 
+const tokenTypes = Object.values(SemanticTokenTypes)
+const tokenTypeToIndexMap = new Map(tokenTypes.map((value, index) => [value, index]))
+const tokenModifiers = Object.values(SemanticTokenModifiers)
+const tokenModifierToIndexMap = new Map(tokenModifiers.map((value, index) => [value, index]))
+function createSemanticToken(
+	line: number,
+	char: number,
+	length: number,
+	tokenType: keyof typeof SemanticTokenTypes,
+	tokenModifier: keyof typeof SemanticTokenModifiers
+): number[] {
+	const tokenTypeIndex = tokenTypeToIndexMap.get(SemanticTokenTypes[tokenType])!
+	const tokenModifierIndex = tokenModifierToIndexMap.get(SemanticTokenModifiers[tokenModifier])!
+	return [line, char, length, tokenTypeIndex, 0]
+}
+
 connection.onInitialized(() => {
-	if (hasConfigurationCapability) {
-		// Register for all configuration changes.
-		connection.client.register(DidChangeConfigurationNotification.type, undefined)
-	}
-	if (hasWorkspaceFolderCapability) {
-		connection.workspace.onDidChangeWorkspaceFolders((_event) => {
-			connection.console.log("Workspace folder change event received.")
-		})
-	}
+	connection.client.register(SemanticTokensRegistrationType.type, {
+		documentSelector: [{ language: "bull-script" }],
+		legend: {
+			tokenTypes,
+			tokenModifiers,
+		},
+		full: true,
+	})
 })
 
-// The example settings
-interface ExtensionSettings {
-	maxNumberOfProblems: number
-}
-
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
-const defaultSettings: ExtensionSettings = { maxNumberOfProblems: 1000 }
-let globalSettings: ExtensionSettings = defaultSettings
-
-// Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<ExtensionSettings>> = new Map()
-
-connection.onDidChangeConfiguration((change) => {
-	if (hasConfigurationCapability) {
-		// Reset all cached document settings
-		documentSettings.clear()
-	} else {
-		globalSettings = (change.settings.languageServerExample || defaultSettings) as ExtensionSettings
-	}
-
-	// Revalidate all open text documents
-	documents.all().forEach(validateTextDocument)
-})
-
-function getDocumentSettings(resource: string): Thenable<ExtensionSettings> {
-	if (!hasConfigurationCapability) {
-		return Promise.resolve(globalSettings)
-	}
-	let result = documentSettings.get(resource)
-	if (!result) {
-		result = connection.workspace.getConfiguration({
-			scopeUri: resource,
-			section: "bullScriptLanguageServer",
-		})
-		documentSettings.set(resource, result)
-	}
-	return result
-}
-
-// Only keep settings for open documents
-documents.onDidClose((e) => {
-	documentSettings.delete(e.document.uri)
-})
-
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent((change) => {
-	validateTextDocument(change.document)
-})
-
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	const settings = await getDocumentSettings(textDocument.uri)
-	const diagnostics: Diagnostic[] = []
-
+// TODO: i have no idea why SemanticTokens acts weird,
+// idk what im doing wrong, logs are right, everything is right,
+// but it doesnt work right
+const semanticDataCache = new Map<string, number[]>()
+connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null => {
+	const textDocument = documents.get(params.textDocument.uri)
+	if (textDocument == null) return null
 	const script = textDocument.getText()
 
-	// I don't know how to use this LSP sh*t atm, so I'm just gonna abuse diagnostics for now
-	// TODO: Use LSP properly
+	const diagnostics: Diagnostic[] = []
+	const data: number[] = []
+
+	function addSemanticToken(
+		location: Token.Location,
+		tokenType: keyof typeof SemanticTokenTypes,
+		tokenModifier: keyof typeof SemanticTokenModifiers
+	) {
+		const startLine = script.substring(0, location.startAt).split("\n").length - 1
+		const startColumn = script.substring(0, location.startAt).split("\n").pop()!.length
+		console.log(tokenType, location, startLine, startColumn, location.endAt - location.startAt)
+		data.push(...createSemanticToken(startLine, startColumn, location.endAt - location.startAt, tokenType, tokenModifier))
+	}
+
 	function analyzeToken(token: Token) {
 		const startLine = script.substring(0, token.location.startAt).split("\n").length - 1
 		const startColumn = script.substring(0, token.location.startAt).split("\n").pop()!.length
@@ -147,6 +119,18 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 			},
 			message: `Token type: ${token.tokenType}`,
 		})
+
+		if (LiteralToken.Number.is(token)) {
+			addSemanticToken(token.location, "number", "declaration")
+		} else if (KeywordToken.is(token)) {
+			addSemanticToken(token.location, "keyword", "declaration")
+		} else if (TypeNameToken.is(token)) {
+			addSemanticToken(token.location, "type", "declaration")
+		} else if (VariableNameToken.is(token)) {
+			addSemanticToken(token.location, "variable", "declaration")
+		} else if (SymbolToken.is(token)) {
+			addSemanticToken(token.location, "operator", "declaration")
+		}
 
 		const entries = Object.entries(token)
 		for (const [key, value] of entries) {
@@ -185,33 +169,26 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 			},
 			message: result.message,
 		})
-	} else {
-		console.log(JSON.stringify(result, null, "\t"))
-		result.forEach(analyzeToken)
+
+		connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
+		return {
+			data: semanticDataCache.get(textDocument.uri) ?? [],
+		}
 	}
 
+	result.forEach(analyzeToken)
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
-}
-
-connection.onDidChangeWatchedFiles((_change) => {
-	// Monitored files have change in VSCode
-	connection.console.log("We received an file change event")
+	semanticDataCache.set(textDocument.uri, data)
+	return { data }
 })
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-	// The pass parameter contains the position of the text document in
-	// which code complete got requested. For the example we ignore this
-	// info and always provide the same completion items.
-	const { line, character } = _textDocumentPosition.position
+connection.onCompletion((textDocumentPositionParams: TextDocumentPositionParams): CompletionItem[] => {
+	const { line, character } = textDocumentPositionParams.position
 
 	return [
 		{
 			label: "TypeScriptt",
-			kind: CompletionItemKind.Interface,
-			data: {
-				cssClass: "interface-item",
-			},
+			kind: CompletionItemKind.Color,
 			documentation: `Line: ${line} Character: ${character}`,
 		},
 		{
@@ -222,15 +199,5 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
 	]
 })
 
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
-	return item
-})
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
 documents.listen(connection)
-
-// Listen on the connection
 connection.listen()

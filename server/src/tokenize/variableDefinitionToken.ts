@@ -4,14 +4,16 @@ import { ScriptReader } from "./reader"
 import { SymbolToken } from "./symbolToken"
 import { TypeToken } from "./typeToken"
 import { ValueToken } from "./valueToken"
-import { WordToken } from "./wordToken"
+import { VariableNameToken } from "./variableNameToken"
 
 export type VariableDefinitionToken = Token<
 	"variableDefinition",
 	{
 		keyword: KeywordToken<"var">
-		name: WordToken
+		name: VariableNameToken
+		colon: SymbolToken<":"> | null
 		type: TypeToken | null
+		equals: SymbolToken<"=">
 		value: ValueToken
 	}
 >
@@ -25,13 +27,13 @@ export namespace VariableDefinition {
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword.keyword}"`))
 
-		const name = WordToken.expect(reader)
+		const name = VariableNameToken.expect(reader)
+		if (name instanceof ScriptReader.SyntaxError) return error(name)
 		if (!name) return null
 
 		const beforeColorCheckpoint = reader.checkpoint()
 		let type: VariableDefinitionToken["type"] = null
 		const colon = SymbolToken.expect(reader, ":")
-
 		if (colon) {
 			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after colon`))
 			const typeToken = TypeToken.expect(reader)
@@ -55,6 +57,8 @@ export namespace VariableDefinition {
 			tokenType: "variableDefinition",
 			keyword,
 			name,
+			colon,
+			equals,
 			type,
 			value,
 			location: {

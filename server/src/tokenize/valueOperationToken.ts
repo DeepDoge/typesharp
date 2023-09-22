@@ -14,6 +14,9 @@ export namespace ValueOperationToken {
 	const operators = ["+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "&&", "||"] as const
 	export type Operator = (typeof operators)[number]
 
+	export function is(value: Token): value is ValueOperationToken {
+		return value.tokenType === "valueOperation"
+	}
 	export function expect(reader: ScriptReader): ValueOperationToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value operator:\n\t${error.message}`)
 		const startAt = reader.getIndex()

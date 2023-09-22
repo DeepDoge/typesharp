@@ -14,6 +14,9 @@ export type TypeToken = Token<
 export namespace TypeToken {
 	export const typeTokens = [TypeNameToken, LiteralToken] as const
 
+	export function is(value: Token): value is TypeToken {
+		return value.tokenType === "type"
+	}
 	export function expect(reader: ScriptReader): TypeToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
 		const startAt = reader.getIndex()

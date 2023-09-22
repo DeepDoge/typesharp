@@ -3,13 +3,12 @@ import { ExportToken } from "./exportToken"
 import { ScriptReader } from "./reader"
 import { ReturnToken } from "./returnToken"
 import { TypeDefinitionToken } from "./typeDefinitionToken"
-import { TypeToken } from "./typeToken"
 import { ValueToken } from "./valueToken"
 import { VariableDefinition } from "./variableDefinitionToken"
 
 export type TopLevelToken = Exclude<ReturnType<TopLevelToken.Token["expect"]>, null | ScriptReader.SyntaxError>
 export namespace TopLevelToken {
-	export const tokens = [Block, ReturnToken, ExportToken, VariableDefinition, TypeDefinitionToken, TypeToken, ValueToken] as const
+	export const tokens = [Block, ReturnToken, ExportToken, VariableDefinition, TypeDefinitionToken, ValueToken] as const
 	export type Token = (typeof tokens)[number]
 
 	export function expect(reader: ScriptReader): TopLevelToken | ScriptReader.SyntaxError | null {

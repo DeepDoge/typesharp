@@ -9,6 +9,9 @@ export namespace TypeOperationToken {
 	export const operators = ["|", "&"] as const
 	export type Operator = (typeof operators)[number]
 
+	export function is(value: Token): value is TypeOperationToken {
+		return value.tokenType === "typeOperation"
+	}
 	export function expect(reader: ScriptReader): TypeOperationToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting type operator:\n\t${error.message}`)
 		const startAt = reader.getIndex()

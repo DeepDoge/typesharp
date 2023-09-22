@@ -8,6 +8,9 @@ export type SymbolToken<TSymbol extends string> = Token<
 	}
 >
 export namespace SymbolToken {
+	export function is(value: Token): value is SymbolToken<string> {
+		return value.tokenType === "symbol"
+	}
 	export function expect<const TSymbol extends string>(reader: ScriptReader, symbol: TSymbol): SymbolToken<TSymbol> | null {
 		const startAt = reader.getIndex()
 

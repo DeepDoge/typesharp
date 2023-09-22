@@ -1,7 +1,5 @@
 import type { Token } from "."
 import { ScriptReader } from "./reader"
-import { SymbolToken } from "./symbolToken"
-import { TypeToken } from "./typeToken"
 
 export type LiteralToken = LiteralToken.Number
 export namespace LiteralToken {
@@ -18,11 +16,13 @@ export namespace LiteralToken {
 		"literalNumber",
 		{
 			value: string
-			as: TypeToken | null
 			isFloat: boolean
 		}
 	>
 	export namespace Number {
+		export function is(value: Token): value is Number {
+			return value.tokenType === "literalNumber"
+		}
 		export function expect(reader: ScriptReader): Number | ScriptReader.SyntaxError | null {
 			const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting number literal:\n\t${error.message}`)
 			const startAt = reader.getIndex()
@@ -43,21 +43,10 @@ export namespace LiteralToken {
 
 			if (value === "") return null
 
-			let satisfies: Number["as"] = null
-			const colon = SymbolToken.expect(reader, ":")
-			if (colon) {
-				if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after colon`))
-				const typeToken = TypeToken.expect(reader)
-				if (!typeToken) return error(reader.syntaxError(`Expected type name after colon`))
-				if (typeToken instanceof ScriptReader.SyntaxError) return error(typeToken)
-				satisfies = typeToken
-			}
-
 			return {
 				tokenType: "literalNumber",
 				value,
 				isFloat,
-				as: satisfies,
 				location: {
 					startAt,
 					endAt: reader.getIndex(),
