@@ -77,7 +77,10 @@ connection.onInitialized(() => {
 			tokenTypes,
 			tokenModifiers,
 		},
-		full: true,
+		full: {
+			delta: true,
+		},
+		range: false,
 	})
 })
 
@@ -93,15 +96,19 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 	const diagnostics: Diagnostic[] = []
 	const data: number[] = []
 
+	let lastLine = 0
+	let lastColumn = 0
 	function addSemanticToken(
 		location: Token.Location,
 		tokenType: keyof typeof SemanticTokenTypes,
 		tokenModifier: keyof typeof SemanticTokenModifiers
 	) {
-		const startLine = script.substring(0, location.startAt).split("\n").length - 1
-		const startColumn = script.substring(0, location.startAt).split("\n").pop()!.length
-		console.log(tokenType, location, startLine, startColumn, location.endAt - location.startAt)
-		data.push(...createSemanticToken(startLine, startColumn, location.endAt - location.startAt, tokenType, tokenModifier))
+		const line = script.substring(0, location.startAt).split("\n").length - 1
+		const column = script.substring(0, location.startAt).split("\n").pop()!.length
+		if (line !== lastLine) lastColumn = 0
+		data.push(...createSemanticToken(line - lastLine, column - lastColumn, location.endAt - location.startAt, tokenType, tokenModifier))
+		lastLine = line
+		lastColumn = column
 	}
 
 	function analyzeToken(token: Token) {
