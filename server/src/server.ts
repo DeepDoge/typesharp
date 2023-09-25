@@ -23,10 +23,8 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { tokenize, type Token } from "./tokenize"
-import { KeywordToken } from "./tokenize/keywordToken"
-import { LiteralToken } from "./tokenize/literalToken"
+import { LiteralNumberToken } from "./tokenize/literalNumberToken"
 import { ScriptReader } from "./tokenize/reader"
-import { SymbolToken } from "./tokenize/symbolToken"
 import { TypeNameToken } from "./tokenize/typeNameToken"
 import { VariableNameToken } from "./tokenize/variableNameToken"
 
@@ -124,18 +122,18 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 				start: { line: startLine, character: startColumn },
 				end: { line: endLine, character: endColumn },
 			},
-			message: `Token type: ${token.tokenType}`,
+			message: `Token type: ${token.tokenType} Line: ${startLine} Character: ${startColumn}`,
 		})
 
-		if (LiteralToken.Number.is(token)) {
+		if (LiteralNumberToken.is(token)) {
 			addSemanticToken(token.location, "number", "declaration")
-		} else if (KeywordToken.is(token)) {
+		} else if (token.tokenType === "keyword") {
 			addSemanticToken(token.location, "keyword", "declaration")
 		} else if (TypeNameToken.is(token)) {
 			addSemanticToken(token.location, "type", "declaration")
 		} else if (VariableNameToken.is(token)) {
 			addSemanticToken(token.location, "variable", "declaration")
-		} else if (SymbolToken.is(token)) {
+		} else if (token.tokenType === "symbol") {
 			addSemanticToken(token.location, "operator", "declaration")
 		}
 

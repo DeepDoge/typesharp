@@ -1,49 +1,44 @@
 import type { Token } from "."
 import { KeywordToken } from "./keywordToken"
 import { ScriptReader } from "./reader"
-import { TypeDefinitionToken } from "./typeDefinitionToken"
-import { VariableDefinition } from "./variableDefinitionToken"
 
-export type ExportToken = Token<
-	"export",
+const tokenType = "export"
+export type ExportToken<T extends Token> = Token<
+	typeof tokenType,
 	{
-		keyword: KeywordToken<"export">
-		token: Exclude<ReturnType<ExportToken.ExportableToken["expect"]>, null | ScriptReader.SyntaxError>
+		keyword: KeywordToken<"pub">
+		token: T
 	}
 >
-export namespace ExportToken {
-	export const exportableTokens = [VariableDefinition, TypeDefinitionToken] as const
-	export type ExportableToken = (typeof exportableTokens)[number]
-
-	export function expect(reader: ScriptReader): ExportToken | ScriptReader.SyntaxError | null {
+export const ExportToken = <T extends Token>(tokenBuilder: Token.Builder<T>): Token.Builder<ExportToken<T>> => ({
+	tokenType,
+	is(value): value is ExportToken<T> {
+		if (value.tokenType !== tokenType) return false
+		const token = value as ExportToken<Token>
+		if (!tokenBuilder.is(token.token)) return false
+		return true
+	},
+	expect(reader: ScriptReader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const keyword = KeywordToken.expect(reader, "export")
+		const keyword = KeywordToken("pub").expect(reader)
 		if (!keyword) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword}"`))
 
-		const checkpoint = reader.checkpoint()
-		let token: ExportToken["token"] | null = null
-		for (const exportableToken of exportableTokens) {
-			checkpoint.restore()
-			const value = exportableToken.expect(reader)
-			if (!value) continue
-			if (value instanceof ScriptReader.SyntaxError) return error(value)
-
-			token = value
-			break
-		}
+		let token = tokenBuilder.expect(reader)
 		if (token === null) return error(reader.syntaxError(`Expected exportable token`))
+		if (token instanceof ScriptReader.SyntaxError) return error(token)
+
 		return {
-			tokenType: "export",
+			tokenType,
 			keyword,
 			token,
 			location: {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies ExportToken
-	}
-}
+		}
+	},
+})

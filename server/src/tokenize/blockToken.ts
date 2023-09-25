@@ -1,45 +1,39 @@
 import type { Token } from "."
+import { MultipleToken } from "./multipleToken"
 import { ScriptReader } from "./reader"
 import { SymbolToken } from "./symbolToken"
-import { TopLevelToken } from "./topLevelToken"
 
-export type BlockToken = Token<"block", { tokens: TopLevelToken[] }>
-export namespace Block {
-	export function expect<T extends boolean>(
-		reader: ScriptReader,
-		ignoreCurlyBraces?: T
-	): BlockToken | ScriptReader.SyntaxError | (T extends true ? never : null) {
+const tokenType = "block"
+export type BlockToken<TMember extends Token> = Token<typeof tokenType, { members: TMember[] }>
+export const BlockToken = <TMember extends Token>(memberBuilder: Token.Builder<TMember>): Token.Builder<BlockToken<TMember>> => ({
+	tokenType,
+	is(value): value is BlockToken<TMember> {
+		if (value.tokenType !== tokenType) return false
+		const token = value as BlockToken<Token>
+		if (token.members.some((member) => !memberBuilder.is(member))) return false
+		return true
+	},
+	expect(reader: ScriptReader) {
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting block:\n\t${error.message}`)
 		const startAt = reader.getIndex()
-		if (!ignoreCurlyBraces && !SymbolToken.expect(reader, "{")) return null as never
+		if (!SymbolToken("{").expect(reader)) return null
 
 		reader.skipWhitespace()
 
-		const tokens: BlockToken["tokens"] = []
-		while (true) {
-			reader.skipWhitespace()
-			const token = TopLevelToken.expect(reader)
-			if (!token) {
-				reader.skipWhitespace()
-				if (ignoreCurlyBraces) {
-					if (reader.peek() === null) break
-					return reader.syntaxError(`Unexpected token "${reader.peek()}"`)
-				} else {
-					if (SymbolToken.expect(reader, "}")) break
-					return reader.syntaxError(`Expected token or "}", got: "${reader.peek()}"`)
-				}
-			}
-			if (token instanceof ScriptReader.SyntaxError) return token
-			tokens.push(token)
-			if (!reader.expectEndOfLine()) return reader.syntaxError(`Expected end of line after token, go to next line or add a semicolon`)
-		}
+		const multiple = MultipleToken(memberBuilder).expect(reader)
+		if (multiple instanceof ScriptReader.SyntaxError) return error(multiple)
+
+		reader.skipWhitespace()
+
+		if (!SymbolToken("}").expect(reader)) return error(reader.syntaxError(`Expected "}"`))
 
 		return {
-			tokenType: "block",
-			tokens,
+			tokenType,
+			members: multiple?.members ?? [],
 			location: {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies BlockToken
-	}
-}
+		}
+	},
+})

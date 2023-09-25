@@ -4,22 +4,27 @@ import { SymbolToken } from "./symbolToken"
 import { ValueToken } from "./valueToken"
 import { WordToken } from "./wordToken"
 
+const tokenType = "functionCall"
 export type FunctionCallToken = Token<
-	"functionCall",
+	typeof tokenType,
 	{
 		name: WordToken
 		args: ValueToken[]
 	}
 >
-export namespace FunctionCallToken {
-	export function expect(reader: ScriptReader): FunctionCallToken | ScriptReader.SyntaxError | null {
+export const FunctionCallToken: Token.Builder<FunctionCallToken> = {
+	tokenType,
+	is(value): value is FunctionCallToken {
+		return value.tokenType === tokenType
+	},
+	expect(reader: ScriptReader): FunctionCallToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting function call:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const name = WordToken.expect(reader)
 		if (!name) return null
 
-		const open = SymbolToken.expect(reader, "(")
+		const open = SymbolToken("(").expect(reader)
 		if (!open) return null
 
 		const args: FunctionCallToken["args"] = []
@@ -31,20 +36,20 @@ export namespace FunctionCallToken {
 			args.push(arg)
 
 			reader.skipWhitespace()
-			if (!SymbolToken.expect(reader, ",")) break
+			if (!SymbolToken(",").expect(reader)) break
 		}
 
-		const close = SymbolToken.expect(reader, ")")
+		const close = SymbolToken(")").expect(reader)
 		if (!close) return error(reader.syntaxError(`Expected closing parantheses`))
 
 		return {
-			tokenType: "functionCall",
+			tokenType,
 			name,
 			args,
 			location: {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies FunctionCallToken
-	}
+		}
+	},
 }

@@ -2,11 +2,7 @@ import { tokenize } from "./tokenize"
 import { ScriptReader } from "./tokenize/reader"
 
 const script = `
-    {
-
-        *
-    }
-    var a = 1
+    type Foo
 `
 
 const result = tokenize(script)

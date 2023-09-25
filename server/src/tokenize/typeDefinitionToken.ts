@@ -1,51 +1,69 @@
 import type { Token } from "."
+import { BlockToken } from "./blockToken"
+import { ExportToken } from "./exportToken"
 import { KeywordToken } from "./keywordToken"
+import { OneOfToken } from "./oneOfToken"
 import { ScriptReader } from "./reader"
-import { SymbolToken } from "./symbolToken"
+import { TupleToken } from "./tupleToken"
+import { TypeNameToken } from "./typeNameToken"
 import { TypeToken } from "./typeToken"
-import { WordToken } from "./wordToken"
+import { VariableDefinitionToken } from "./variableDefinitionToken"
 
+const tokenType = "typeDefinition"
 export type TypeDefinitionToken = Token<
-	"typeDefinition",
+	typeof tokenType,
 	{
 		keyword: KeywordToken<"type">
-		name: WordToken
-		type: TypeToken
+		name: TypeNameToken
+		token:
+			| TupleToken<TypeToken>
+			| BlockToken<ExportToken<TypeDefinitionToken | VariableDefinitionToken> | TypeDefinitionToken | VariableDefinitionToken>
+			| null
 	}
 >
-export namespace TypeDefinitionToken {
-	export function expect(reader: ScriptReader): TypeDefinitionToken | ScriptReader.SyntaxError | null {
+export const TypeDefinitionToken: Token.Builder<TypeDefinitionToken> = {
+	tokenType,
+	is(value): value is TypeDefinitionToken {
+		return value.tokenType === tokenType
+	},
+	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const keyword = KeywordToken.expect(reader, "type")
+		const keyword = KeywordToken("type").expect(reader)
 		if (!keyword) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword.keyword}"`))
 
-		const name = WordToken.expect(reader)
+		const name = TypeNameToken.expect(reader)
 		if (!name) return null
+		if (name instanceof ScriptReader.SyntaxError) return error(name)
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after name`))
+		const checkpointAfterName = reader.checkpoint()
+		const hadWhitespaceAfterName = reader.expectWhitespace()
 
-		const equalSymbol = SymbolToken.expect(reader, "=")
-		if (!equalSymbol) return error(reader.syntaxError(`Expected equals sign`))
-
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals sign`))
-
-		const type = TypeToken.expect(reader)
-		if (!type) return error(reader.syntaxError(`Expected value`))
-		if (type instanceof ScriptReader.SyntaxError) return error(type)
+		const token = OneOfToken(() => [
+			TupleToken(TypeToken),
+			BlockToken(
+				OneOfToken(() => [
+					ExportToken(OneOfToken(() => [TypeDefinitionToken, VariableDefinitionToken])),
+					OneOfToken(() => [TypeDefinitionToken, VariableDefinitionToken]),
+				])
+			),
+		]).expect(reader)
+		if (token instanceof ScriptReader.SyntaxError) return error(token)
+		if (token && !hadWhitespaceAfterName) return error(reader.syntaxError(`Expected whitespace after "${name.name.word}"`))
+		if (!token) checkpointAfterName.restore()
 
 		return {
-			tokenType: "typeDefinition",
+			tokenType,
 			keyword,
 			name,
-			type,
+			token,
 			location: {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies TypeDefinitionToken
-	}
+		}
+	},
 }

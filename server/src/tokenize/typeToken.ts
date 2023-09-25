@@ -1,65 +1,57 @@
 import type { Token } from "."
-import { LiteralToken } from "./literalToken"
+import { LiteralNumberToken } from "./literalNumberToken"
+import { OneOfToken } from "./oneOfToken"
+import { OperationToken } from "./operationToken"
 import { ScriptReader } from "./reader"
 import { TypeNameToken } from "./typeNameToken"
-import { TypeOperationToken } from "./typeOperationToken"
 
+const tokenType = "type"
 export type TypeToken = Token<
-	"type",
+	typeof tokenType,
 	{
-		token: Exclude<ReturnType<(typeof TypeToken.typeTokens)[number]["expect"]>, null | ScriptReader.SyntaxError>
-		operation: TypeOperationToken | null
+		token: TypeNameToken | LiteralNumberToken
+		operation: OperationToken<"|" | "&", TypeToken> | null
 	}
 >
-export namespace TypeToken {
-	export const typeTokens = [TypeNameToken, LiteralToken] as const
-
-	export function is(value: Token): value is TypeToken {
-		return value.tokenType === "type"
-	}
-	export function expect(reader: ScriptReader): TypeToken | ScriptReader.SyntaxError | null {
+export const TypeToken: Token.Builder<TypeToken> = {
+	tokenType,
+	is(value): value is TypeToken {
+		return value.tokenType === tokenType
+	},
+	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const checkpoint = reader.checkpoint()
-		let token: TypeToken["token"] | null = null
-		for (const typeToken of typeTokens) {
-			checkpoint.restore()
-			const resultToken = typeToken.expect(reader)
-			if (!resultToken) continue
-			if (resultToken instanceof ScriptReader.SyntaxError) return error(resultToken)
-
-			token = resultToken
-			break
-		}
+		let token = OneOfToken(() => [TypeNameToken, LiteralNumberToken]).expect(reader)
 		if (token === null) return null
+		if (token instanceof ScriptReader.SyntaxError) return error(token)
 
 		const checkpoint2 = reader.checkpoint()
 		const hadWhitespaceBeforeOperation = reader.expectWhitespace()
 
-		const operation = TypeOperationToken.expect(reader)
+		const operation = OperationToken(["&", "|"], TypeToken).expect(reader)
+		if (operation instanceof ScriptReader.SyntaxError) return error(operation)
 		if (operation) {
-			if (operation instanceof ScriptReader.SyntaxError) return error(operation)
 			if (!hadWhitespaceBeforeOperation) return error(reader.syntaxError(`Expected whitespace before operator: "${operation.operator.symbol}"`))
 			return {
-				tokenType: "type",
+				tokenType,
 				token,
 				operation,
 				location: {
 					startAt,
 					endAt: reader.getIndex(),
 				},
-			} satisfies TypeToken
+			}
 		} else checkpoint2.restore()
 
 		return {
-			tokenType: "type",
+			tokenType,
 			token,
 			operation: null,
 			location: {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies TypeToken
-	}
+		}
+	},
 }

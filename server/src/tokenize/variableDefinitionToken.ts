@@ -6,23 +6,28 @@ import { TypeToken } from "./typeToken"
 import { ValueToken } from "./valueToken"
 import { VariableNameToken } from "./variableNameToken"
 
+const tokenType = "variableDefinition"
 export type VariableDefinitionToken = Token<
-	"variableDefinition",
+	typeof tokenType,
 	{
 		keyword: KeywordToken<"var">
 		name: VariableNameToken
 		colon: SymbolToken<":"> | null
 		type: TypeToken | null
-		equals: SymbolToken<"=">
-		value: ValueToken
+		equals: SymbolToken<"="> | null
+		value: ValueToken | null
 	}
 >
-export namespace VariableDefinition {
-	export function expect(reader: ScriptReader): VariableDefinitionToken | ScriptReader.SyntaxError | null {
+export const VariableDefinitionToken: Token.Builder<VariableDefinitionToken> = {
+	tokenType,
+	is(value): value is VariableDefinitionToken {
+		return value.tokenType === tokenType
+	},
+	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
-		const keyword = KeywordToken.expect(reader, "var")
+		const keyword = KeywordToken("var").expect(reader)
 		if (!keyword) return null
 
 		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after "${keyword.keyword}"`))
@@ -33,7 +38,7 @@ export namespace VariableDefinition {
 
 		const beforeColorCheckpoint = reader.checkpoint()
 		let type: VariableDefinitionToken["type"] = null
-		const colon = SymbolToken.expect(reader, ":")
+		const colon = SymbolToken(":").expect(reader)
 		if (colon) {
 			if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after colon`))
 			const typeToken = TypeToken.expect(reader)
@@ -42,19 +47,34 @@ export namespace VariableDefinition {
 			type = typeToken
 		} else beforeColorCheckpoint.restore()
 
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace before equals sign`))
+		const hadWhitespaceAfterName = reader.expectWhitespace()
 
-		const equals = SymbolToken.expect(reader, "=")
-		if (!equals) return error(reader.syntaxError(`Expected equals sign`))
-
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace between equals sign and value`))
+		const equals = SymbolToken("=").expect(reader)
+		if (!equals) {
+			if (reader.expectEndOfLine() === null) return error(reader.syntaxError(`Expected equals sign after name`))
+			return {
+				tokenType,
+				keyword,
+				name,
+				colon,
+				type,
+				equals: null,
+				value: null,
+				location: {
+					startAt,
+					endAt: reader.getIndex(),
+				},
+			}
+		}
+		if (!hadWhitespaceAfterName) return error(reader.syntaxError(`Expected whitespace before equals sign`))
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals sign`))
 
 		const value = ValueToken.expect(reader)
 		if (!value) return error(reader.syntaxError(`Expected value`))
 		if (value instanceof ScriptReader.SyntaxError) return error(value)
 
 		return {
-			tokenType: "variableDefinition",
+			tokenType,
 			keyword,
 			name,
 			colon,
@@ -65,6 +85,6 @@ export namespace VariableDefinition {
 				startAt,
 				endAt: reader.getIndex(),
 			},
-		} satisfies VariableDefinitionToken
-	}
+		}
+	},
 }
