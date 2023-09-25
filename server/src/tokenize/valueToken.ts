@@ -11,8 +11,8 @@ import { VariableDefinitionToken } from "./variableDefinitionToken"
 
 const mathOperators = ["+", "-", "*", "/"] as const
 const operators = [
-	...mathOperators,
 	...mathOperators.map((operator) => `${operator}=` as const),
+	...mathOperators,
 	"==",
 	"!=",
 	"<",

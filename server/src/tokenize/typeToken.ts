@@ -9,7 +9,7 @@ import { TupleToken } from "./tupleToken"
 import { TypeNameToken } from "./typeNameToken"
 
 const primitiveOperators = ["|", "&"] as const
-const operators = [...primitiveOperators, ...primitiveOperators.map((operator) => `${operator}=` as const)] as const
+const operators = [...primitiveOperators.map((operator) => `${operator}=` as const), ...primitiveOperators] as const
 type TypeOperator = (typeof operators)[number]
 
 type $Token =

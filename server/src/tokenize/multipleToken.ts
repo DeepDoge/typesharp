@@ -18,7 +18,8 @@ export const MultipleToken = <TMember extends Token>(memberBuilder: Token.Builde
 			if (token instanceof ScriptReader.SyntaxError) return error(token)
 			if (!token) break
 			members.push(token)
-			if (!reader.expectEndOfLine()) return error(reader.syntaxError(`Expected end of line after token`))
+			reader.skipWhitespace(true)
+			if (!reader.expectEndOfLine()) return error(reader.syntaxError(`Expected end of line after ${token.tokenType}, got "${reader.peek()}"`))
 		}
 
 		return {

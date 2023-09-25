@@ -7,6 +7,7 @@ import { ScriptReader } from "./reader"
 import { ReturnToken } from "./returnToken"
 import { TypeDefinitionToken } from "./typeDefinitionToken"
 import { TypeNameToken } from "./typeNameToken"
+import { TypeToken } from "./typeToken"
 import { TypeTraitToken } from "./typeTraitToken"
 import { ValueToken } from "./valueToken"
 import { VariableDefinitionToken } from "./variableDefinitionToken"
@@ -58,7 +59,7 @@ export type DefinitionToken = TypeDefinitionToken | VariableDefinitionToken
 export const DefinitionToken: Token.Builder<DefinitionToken> = OneOfToken([TypeDefinitionToken, VariableDefinitionToken])
 
 export type PrimitiveTopLevelToken = Token.Of<typeof PrimitiveTopLevelToken>
-export const PrimitiveTopLevelToken = OneOfToken([ReturnToken, TypeTraitToken, DefinitionToken, ValueToken])
+export const PrimitiveTopLevelToken = OneOfToken([ReturnToken, TypeTraitToken, DefinitionToken, ValueToken, TypeToken])
 
 type RootLevelToken = Token.Of<typeof RootLevelToken>
 const RootLevelToken = OneOfToken([ExportToken(DefinitionToken), PrimitiveTopLevelToken])
