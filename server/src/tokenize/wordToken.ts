@@ -7,10 +7,9 @@ export type WordToken = Token<
 		word: string
 	}
 >
-export const WordToken: Token.BuilderOptional<WordToken> = {
-	tokenType,
-	is(value: Token): value is WordToken {
-		return value.tokenType === tokenType
+export const WordToken: Token.BuilderNoError<WordToken> = {
+	tokenType() {
+		return tokenType
 	},
 	expect(reader) {
 		const startAt = reader.getIndex()
@@ -27,7 +26,7 @@ export const WordToken: Token.BuilderOptional<WordToken> = {
 		}
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			word,
 			location: {
 				startAt,

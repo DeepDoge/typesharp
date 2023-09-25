@@ -4,14 +4,10 @@ import { ScriptReader } from "./reader"
 import { SymbolToken } from "./symbolToken"
 
 const tokenType = "block"
-export type BlockToken<TMember extends Token> = Token<typeof tokenType, { members: TMember[] }>
+export type BlockToken<TMember extends Token> = Token<`${typeof tokenType}(${TMember["tokenType"]})`, { members: TMember[] }>
 export const BlockToken = <TMember extends Token>(memberBuilder: Token.Builder<TMember>): Token.Builder<BlockToken<TMember>> => ({
-	tokenType,
-	is(value): value is BlockToken<TMember> {
-		if (value.tokenType !== tokenType) return false
-		const token = value as BlockToken<Token>
-		if (token.members.some((member) => !memberBuilder.is(member))) return false
-		return true
+	tokenType() {
+		return `${tokenType}(${memberBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting block:\n\t${error.message}`)
@@ -28,7 +24,7 @@ export const BlockToken = <TMember extends Token>(memberBuilder: Token.Builder<T
 		if (!SymbolToken("}").expect(reader)) return error(reader.syntaxError(`Expected "}"`))
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			members: multiple?.members ?? [],
 			location: {
 				startAt,

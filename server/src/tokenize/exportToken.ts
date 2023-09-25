@@ -4,19 +4,15 @@ import { ScriptReader } from "./reader"
 
 const tokenType = "export"
 export type ExportToken<T extends Token> = Token<
-	typeof tokenType,
+	`${typeof tokenType}(${T["tokenType"]})`,
 	{
 		keyword: KeywordToken<"pub">
 		token: T
 	}
 >
 export const ExportToken = <T extends Token>(tokenBuilder: Token.Builder<T>): Token.Builder<ExportToken<T>> => ({
-	tokenType,
-	is(value): value is ExportToken<T> {
-		if (value.tokenType !== tokenType) return false
-		const token = value as ExportToken<Token>
-		if (!tokenBuilder.is(token.token)) return false
-		return true
+	tokenType() {
+		return `${tokenType}(${tokenBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
@@ -32,7 +28,7 @@ export const ExportToken = <T extends Token>(tokenBuilder: Token.Builder<T>): To
 		if (token instanceof ScriptReader.SyntaxError) return error(token)
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			keyword,
 			token,
 			location: {

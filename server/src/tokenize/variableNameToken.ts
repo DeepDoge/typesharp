@@ -5,9 +5,8 @@ import { WordToken } from "./wordToken"
 const tokenType = "variableName"
 export type VariableNameToken = Token<typeof tokenType, { name: WordToken }>
 export const VariableNameToken: Token.Builder<VariableNameToken> = {
-	tokenType,
-	is(value): value is VariableNameToken {
-		return value.tokenType === tokenType
+	tokenType() {
+		return tokenType
 	},
 	expect(reader: ScriptReader): VariableNameToken | ScriptReader.SyntaxError | null {
 		const startAt = reader.getIndex()
@@ -16,7 +15,7 @@ export const VariableNameToken: Token.Builder<VariableNameToken> = {
 		if (!name) return null
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			name,
 			location: {
 				startAt,

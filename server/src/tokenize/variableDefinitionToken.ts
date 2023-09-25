@@ -1,4 +1,5 @@
 import type { Token } from "."
+import { EqualsToken } from "./equalsToken"
 import { KeywordToken } from "./keywordToken"
 import { ScriptReader } from "./reader"
 import { SymbolToken } from "./symbolToken"
@@ -14,14 +15,12 @@ export type VariableDefinitionToken = Token<
 		name: VariableNameToken
 		colon: SymbolToken<":"> | null
 		type: TypeToken | null
-		equals: SymbolToken<"="> | null
-		value: ValueToken | null
+		equals: EqualsToken<ValueToken> | null
 	}
 >
 export const VariableDefinitionToken: Token.Builder<VariableDefinitionToken> = {
-	tokenType,
-	is(value): value is VariableDefinitionToken {
-		return value.tokenType === tokenType
+	tokenType() {
+		return tokenType
 	},
 	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
@@ -49,38 +48,17 @@ export const VariableDefinitionToken: Token.Builder<VariableDefinitionToken> = {
 
 		const hadWhitespaceAfterName = reader.expectWhitespace()
 
-		const equals = SymbolToken("=").expect(reader)
-		if (!equals) {
-			if (reader.expectEndOfLine() === null) return error(reader.syntaxError(`Expected equals sign after name`))
-			return {
-				tokenType,
-				keyword,
-				name,
-				colon,
-				type,
-				equals: null,
-				value: null,
-				location: {
-					startAt,
-					endAt: reader.getIndex(),
-				},
-			}
-		}
-		if (!hadWhitespaceAfterName) return error(reader.syntaxError(`Expected whitespace before equals sign`))
-		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals sign`))
-
-		const value = ValueToken.expect(reader)
-		if (!value) return error(reader.syntaxError(`Expected value`))
-		if (value instanceof ScriptReader.SyntaxError) return error(value)
+		const equals = EqualsToken(ValueToken).expect(reader)
+		if (equals instanceof ScriptReader.SyntaxError) return error(equals)
+		if (equals && !hadWhitespaceAfterName) return error(reader.syntaxError(`Expected whitespace after "${name.name.word}"`))
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			keyword,
 			name,
 			colon,
 			equals,
 			type,
-			value,
 			location: {
 				startAt,
 				endAt: reader.getIndex(),

@@ -13,9 +13,8 @@ export type FunctionCallToken = Token<
 	}
 >
 export const FunctionCallToken: Token.Builder<FunctionCallToken> = {
-	tokenType,
-	is(value): value is FunctionCallToken {
-		return value.tokenType === tokenType
+	tokenType() {
+		return tokenType
 	},
 	expect(reader: ScriptReader): FunctionCallToken | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting function call:\n\t${error.message}`)
@@ -43,7 +42,7 @@ export const FunctionCallToken: Token.Builder<FunctionCallToken> = {
 		if (!close) return error(reader.syntaxError(`Expected closing parantheses`))
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			name,
 			args,
 			location: {

@@ -4,9 +4,8 @@ import type { ScriptReader } from "./reader"
 const tokenType = "literalNumber"
 export type LiteralNumberToken = Token<typeof tokenType, { value: string; isFloat: boolean }>
 export const LiteralNumberToken: Token.Builder<LiteralNumberToken> = {
-	tokenType,
-	is(value): value is LiteralNumberToken {
-		return value.tokenType === tokenType
+	tokenType() {
+		return tokenType
 	},
 	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting number literal:\n\t${error.message}`)
@@ -30,7 +29,7 @@ export const LiteralNumberToken: Token.Builder<LiteralNumberToken> = {
 		if (value === "") return checkpoint.restore(), null
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			value,
 			isFloat,
 			location: {

@@ -12,11 +12,8 @@ export type ReturnToken = Token<
 	}
 >
 export const ReturnToken: Token.Builder<ReturnToken> = {
-	tokenType,
-	is(value): value is ReturnToken {
-		if (value.tokenType !== tokenType) return false
-		const token = value as ReturnToken
-		return true
+	tokenType() {
+		return tokenType
 	},
 	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting return statement:\n\t${error.message}`)
@@ -32,7 +29,7 @@ export const ReturnToken: Token.Builder<ReturnToken> = {
 		if (value && !hadWhitespaceBeforeValue) return error(reader.syntaxError(`Expected whitespace between "${keyword}" keyword and value`))
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			keyword,
 			value,
 			location: {

@@ -1,4 +1,5 @@
 import type { Token } from "."
+import { DefinitionToken } from "."
 import { BlockToken } from "./blockToken"
 import { ExportToken } from "./exportToken"
 import { KeywordToken } from "./keywordToken"
@@ -7,7 +8,12 @@ import { ScriptReader } from "./reader"
 import { TupleToken } from "./tupleToken"
 import { TypeNameToken } from "./typeNameToken"
 import { TypeToken } from "./typeToken"
-import { VariableDefinitionToken } from "./variableDefinitionToken"
+
+type $Token = TupleToken<TypeToken> | BlockToken<ExportToken<DefinitionToken> | DefinitionToken>
+const $Token: Token.Builder<$Token> = OneOfToken(() => [
+	TupleToken(TypeToken),
+	BlockToken(OneOfToken([ExportToken(DefinitionToken), DefinitionToken])),
+])
 
 const tokenType = "typeDefinition"
 export type TypeDefinitionToken = Token<
@@ -15,16 +21,12 @@ export type TypeDefinitionToken = Token<
 	{
 		keyword: KeywordToken<"type">
 		name: TypeNameToken
-		token:
-			| TupleToken<TypeToken>
-			| BlockToken<ExportToken<TypeDefinitionToken | VariableDefinitionToken> | TypeDefinitionToken | VariableDefinitionToken>
-			| null
+		token: $Token | null
 	}
 >
 export const TypeDefinitionToken: Token.Builder<TypeDefinitionToken> = {
-	tokenType,
-	is(value): value is TypeDefinitionToken {
-		return value.tokenType === tokenType
+	tokenType() {
+		return tokenType
 	},
 	expect(reader) {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
@@ -42,21 +44,13 @@ export const TypeDefinitionToken: Token.Builder<TypeDefinitionToken> = {
 		const checkpointAfterName = reader.checkpoint()
 		const hadWhitespaceAfterName = reader.expectWhitespace()
 
-		const token = OneOfToken(() => [
-			TupleToken(TypeToken),
-			BlockToken(
-				OneOfToken(() => [
-					ExportToken(OneOfToken(() => [TypeDefinitionToken, VariableDefinitionToken])),
-					OneOfToken(() => [TypeDefinitionToken, VariableDefinitionToken]),
-				])
-			),
-		]).expect(reader)
+		const token = $Token.expect(reader)
 		if (token instanceof ScriptReader.SyntaxError) return error(token)
 		if (token && !hadWhitespaceAfterName) return error(reader.syntaxError(`Expected whitespace after "${name.name.word}"`))
 		if (!token) checkpointAfterName.restore()
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			keyword,
 			name,
 			token,

@@ -3,18 +3,14 @@ import type { ScriptReader } from "./reader"
 
 const tokenType = "symbol"
 export type SymbolToken<TSymbol extends string> = Token<
-	typeof tokenType,
+	`${typeof tokenType}(${TSymbol})`,
 	{
 		symbol: TSymbol
 	}
 >
-export const SymbolToken = <TSymbol extends string>(symbol: TSymbol): Token.BuilderOptional<SymbolToken<TSymbol>> => ({
-	tokenType,
-	is(value: Token): value is SymbolToken<TSymbol> {
-		if (value.tokenType !== tokenType) return false
-		const token = value as SymbolToken<TSymbol>
-		if (token.symbol !== symbol) return false
-		return true
+export const SymbolToken = <TSymbol extends string>(symbol: TSymbol): Token.BuilderNoError<SymbolToken<TSymbol>> => ({
+	tokenType() {
+		return `${tokenType}(${symbol})` as const
 	},
 	expect(reader: ScriptReader): SymbolToken<TSymbol> | null {
 		const startAt = reader.getIndex()
@@ -26,7 +22,7 @@ export const SymbolToken = <TSymbol extends string>(symbol: TSymbol): Token.Buil
 		}
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			symbol,
 			location: {
 				startAt,

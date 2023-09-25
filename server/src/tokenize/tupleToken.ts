@@ -4,18 +4,14 @@ import { SymbolToken } from "./symbolToken"
 
 const tokenType = "tuple"
 export type TupleToken<TMember extends Token> = Token<
-	typeof tokenType,
+	`${typeof tokenType}(${TMember["tokenType"]})`,
 	{
 		members: TMember[]
 	}
 >
 export const TupleToken = <TMember extends Token>(memberBuilder: Token.Builder<TMember>): Token.Builder<TupleToken<TMember>> => ({
-	tokenType,
-	is(value: Token): value is TupleToken<TMember> {
-		if (value.tokenType !== tokenType) return false
-		const token = value as TupleToken<Token>
-		if (token.members.some((member) => !memberBuilder.is(member))) return false
-		return true
+	tokenType() {
+		return `${tokenType}(${memberBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader): TupleToken<TMember> | ScriptReader.SyntaxError | null {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting tuple:\n\t${error.message}`)
@@ -41,7 +37,7 @@ export const TupleToken = <TMember extends Token>(memberBuilder: Token.Builder<T
 		if (!closeParenthesis) return error(reader.syntaxError(`Expected ")"`))
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			members,
 			location: {
 				startAt,

@@ -4,19 +4,15 @@ import { SymbolToken } from "./symbolToken"
 
 const tokenType = "equals"
 export type EqualsToken<T extends Token> = Token<
-	typeof tokenType,
+	`${typeof tokenType}(${T["tokenType"]})`,
 	{
 		symbol: SymbolToken<"=">
 		token: T
 	}
 >
 export const EqualsToken = <T extends Token>(tokenBuilder: Token.Builder<T>): Token.Builder<EqualsToken<T>> => ({
-	tokenType,
-	is(value): value is EqualsToken<T> {
-		if (value.tokenType !== tokenType) return false
-		const token = value as EqualsToken<Token>
-		if (tokenBuilder.is(value)) return true
-		return false
+	tokenType() {
+		return `${tokenType}(${tokenBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader): EqualsToken<T> | null | ScriptReader.SyntaxError {
 		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting equals:\n\t${error.message}`)
@@ -25,12 +21,14 @@ export const EqualsToken = <T extends Token>(tokenBuilder: Token.Builder<T>): To
 		const symbol = SymbolToken("=").expect(reader)
 		if (!symbol) return null
 
+		if (!reader.expectWhitespace()) return error(reader.syntaxError(`Expected whitespace after equals`))
+
 		const token = tokenBuilder.expect(reader)
 		if (!token) return error(reader.syntaxError(`Expected token after equals`))
 		if (token instanceof ScriptReader.SyntaxError) return error(token)
 
 		return {
-			tokenType,
+			tokenType: this.tokenType(),
 			symbol,
 			token,
 			location: {
