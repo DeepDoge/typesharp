@@ -17,7 +17,7 @@ export const FunctionCallToken: Token.Builder<FunctionCallToken> = {
 		return tokenType
 	},
 	expect(reader: ScriptReader): FunctionCallToken | ScriptReader.SyntaxError | null {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting function call:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const name = WordToken.expect(reader)

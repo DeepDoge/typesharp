@@ -15,7 +15,7 @@ export const EqualsToken = <T extends Token>(tokenBuilder: Token.Builder<T>): To
 		return `${tokenType}(${tokenBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader): EqualsToken<T> | null | ScriptReader.SyntaxError {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting equals:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const symbol = SymbolToken("=").expect(reader)

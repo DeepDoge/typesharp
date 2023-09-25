@@ -36,7 +36,7 @@ export const TypeToken: Token.Builder<TypeToken> = {
 		return tokenType
 	},
 	expect(reader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		let token = OneOfToken(() => [TypeNameToken, LiteralNumberToken]).expect(reader)

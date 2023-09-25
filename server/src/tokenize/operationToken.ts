@@ -17,7 +17,7 @@ export const OperationToken = <TOperator extends string, TRight extends Token>(
 		return `${tokenType}(${operatorString}, ${rightBuilder.tokenType()})` as const
 	},
 	expect(reader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting operator:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const checkpoint = reader.checkpoint()
@@ -30,8 +30,7 @@ export const OperationToken = <TOperator extends string, TRight extends Token>(
 
 		const right = rightBuilder.expect(reader)
 		if (!right) return error(reader.syntaxError(`Expected right-hand side of operator`))
-		if (right instanceof ScriptReader.SyntaxError)
-			return error(reader.syntaxError(`While expecting right-hand side of operator:\n\t${right.message}`))
+		if (right instanceof ScriptReader.SyntaxError) return error(reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${right.message}`))
 
 		return {
 			tokenType: this.tokenType(),

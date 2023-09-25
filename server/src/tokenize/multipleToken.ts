@@ -8,8 +8,7 @@ export const MultipleToken = <TMember extends Token>(memberBuilder: Token.Builde
 		return `${tokenType}(${memberBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader) {
-		const error = (error: ScriptReader.SyntaxError) =>
-			reader.syntaxError(`While expecting multiple tokens of type "${memberBuilder.tokenType()}":\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const members: TMember[] = []

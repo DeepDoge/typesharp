@@ -48,7 +48,7 @@ export const ValueToken: Token.Builder<ValueToken> = {
 		return tokenType
 	},
 	expect(reader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting value:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		let token = $Token().expect(reader)

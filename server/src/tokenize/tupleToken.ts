@@ -14,7 +14,7 @@ export const TupleToken = <TMember extends Token>(memberBuilder: Token.Builder<T
 		return `${tokenType}(${memberBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader): TupleToken<TMember> | ScriptReader.SyntaxError | null {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting tuple:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const openParenthesis = SymbolToken("(").expect(reader)

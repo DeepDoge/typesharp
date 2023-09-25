@@ -15,7 +15,7 @@ export const ExportToken = <T extends Token>(tokenBuilder: Token.Builder<T>): To
 		return `${tokenType}(${tokenBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting export:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const keyword = KeywordToken("pub").expect(reader)

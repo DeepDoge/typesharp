@@ -10,7 +10,7 @@ export const BlockToken = <TMember extends Token>(memberBuilder: Token.Builder<T
 		return `${tokenType}(${memberBuilder.tokenType()})` as const
 	},
 	expect(reader: ScriptReader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting block:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 		if (!SymbolToken("{").expect(reader)) return null
 

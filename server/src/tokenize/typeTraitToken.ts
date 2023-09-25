@@ -19,7 +19,7 @@ export const TypeTraitToken: Token.Builder<TypeTraitToken> = {
 		return tokenType
 	},
 	expect(reader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting type trait definition:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const keyword = KeywordToken("type trait").expect(reader)

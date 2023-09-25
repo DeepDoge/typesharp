@@ -29,7 +29,7 @@ export const TypeDefinitionToken: Token.Builder<TypeDefinitionToken> = {
 		return tokenType
 	},
 	expect(reader) {
-		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting variable definition:\n\t${error.message}`)
+		const error = (error: ScriptReader.SyntaxError) => reader.syntaxError(`While expecting ${this.tokenType()}:\n\t${error.message}`)
 		const startAt = reader.getIndex()
 
 		const keyword = KeywordToken("type").expect(reader)
