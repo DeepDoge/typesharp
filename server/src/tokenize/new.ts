@@ -184,10 +184,10 @@ export namespace Token {
 			})
 		}
 
-		export function Operation<const TLeft extends Token, const TOperator extends string, const TRight extends Token>(
-			leftExpector: Token.Expector<TLeft>,
+		export function Operation<const TLeft extends Token.Expector, const TOperator extends string, const TRight extends Token.Expector>(
+			leftExpector: TLeft,
 			operatorString: TOperator,
-			rightExpector: Token.Expector<TRight>
+			rightExpector: TRight
 		) {
 			return Token.Expector.create(`operation(${leftExpector.type} ${operatorString} ${rightExpector.type})`, Operation, (reader) => {
 				const left = leftExpector.expect(reader)
@@ -274,17 +274,17 @@ export namespace Token {
 			})
 		}
 
-		export function Tuple<const T extends Token>(expector: Token.Expector<T>) {
+		export function Tuple<const T extends Token.Expector>(expector: T) {
 			return Token.Expector.create(`tuple(${expector.type})`, Tuple, (reader) => {
 				const open = Symbol("(").expect(reader)
 				if (nullOrError(open)) return open
 
-				const tokens: T[] = []
+				const tokens: Token.Of<T>[] = []
 				while (true) {
 					const token = expector.expect(reader)
 					if (!token) break
 					if (token instanceof SyntaxError) return token
-					tokens.push(token)
+					tokens.push(token as Token.Of<T>)
 					const comma = Symbol(",").expect(reader)
 					if (!comma) break
 					if (comma instanceof SyntaxError) return comma
@@ -303,7 +303,7 @@ export namespace Token {
 			})
 		}
 
-		export function Export<const T extends Token>(expector: Token.Expector<T>) {
+		export function Export<const T extends Token.Expector>(expector: T) {
 			return Token.Expector.create(`export(${expector.type})`, Export, (reader) => {
 				const keyword = Keyword("pub").expect(reader)
 				if (nullOrError(keyword)) return keyword
@@ -335,7 +335,7 @@ export namespace Token {
 			})
 		}
 
-		export function ValueDefinition() {
+		export function ValueDefinition<T extends Token.Expector>(valueExpector: T) {
 			return Token.Expector.create(`value-definition`, ValueDefinition, (reader) => {
 				const keyword = Keyword("var").expect(reader)
 				if (nullOrError(keyword)) return keyword
@@ -345,7 +345,7 @@ export namespace Token {
 				const name = OneOf([Operation(Name("value"), ":", Type), Name("value")]).expect(reader)
 				if (nullOrError(name)) return name
 
-				const equals = Operation(Whitespace("inline"), "=", Value).expect(reader)
+				const equals = Operation(Whitespace("inline"), "=", valueExpector).expect(reader)
 				if (equals instanceof SyntaxError) return equals
 
 				return {
@@ -356,7 +356,7 @@ export namespace Token {
 			})
 		}
 
-		export function TypeDefinition() {
+		export function TypeDefinition<T extends Token.Expector>(typeExpector: T) {
 			return Token.Expector.create(`type-definition`, TypeDefinition, (reader) => {
 				const keyword = Keyword("type").expect(reader)
 				if (nullOrError(keyword)) return keyword
@@ -368,7 +368,7 @@ export namespace Token {
 
 				if (!Whitespace("inline").expect(reader)) return reader.syntaxError(`Expected whitespace after ${name.type}`)
 
-				const type = OneOf([Tuple(Type)])
+				const type = OneOf([Tuple(typeExpector)])
 
 				return {
 					keyword,
@@ -378,15 +378,15 @@ export namespace Token {
 			})
 		}
 
-		export function Multiline<const T extends Token>(expector: Token.Expector<T>) {
+		export function Multiline<const T extends Token.Expector>(expector: T) {
 			return Token.Expector.create(`multiline(${expector.type})`, Multiline, (reader) => {
-				const tokens: T[] = []
+				const tokens: Token.Of<T>[] = []
 				while (true) {
 					Whitespace("full").expect(reader)
 					const token = expector.expect(reader)
 					if (!token) break
 					if (token instanceof SyntaxError) return token
-					tokens.push(token)
+					tokens.push(token as Token.Of<T>)
 					const endOfLine = EndOfLine().expect(reader)
 					if (nullOrError(endOfLine)) return reader.syntaxError(`Expected end of line after ${token.type}`)
 				}
@@ -395,7 +395,7 @@ export namespace Token {
 			})
 		}
 
-		export function Block<const T extends Token>(expector: Token.Expector<T>) {
+		export function Block<const T extends Token.Expector>(expector: T) {
 			return Token.Expector.create(`block(${expector.type})`, Block, (reader) => {
 				const open = Symbol("{").expect(reader)
 				if (nullOrError(open)) return open
@@ -415,10 +415,31 @@ export namespace Token {
 			})
 		}
 
-		export const Type = OneOf((SELF) => [Literal, Tuple(SELF), Block(SELF), Name("type")])
 		export const Literal = OneOf([NumberLiteral(), StringLiteral(), BooleanLiteral()])
+		export const Type = OneOf((SELF) => [
+			Literal,
+			Name("type"),
+			Tuple(SELF),
+			Block(OneOf([SELF, TypeDefinition(SELF), Export(TypeDefinition(SELF))])),
+		])
+		export const Value = OneOf((SELF) => [
+			Literal,
+			Name("value"),
+			Tuple(SELF),
+			Block(OneOf([SELF, ValueDefinition(SELF), TypeDefinition(Type), Export(ValueDefinition(SELF))])),
+		])
+		export const Root = OneOf([
+			Value,
+			ValueDefinition(Value),
+			TypeDefinition(Type),
+			Export(OneOf([ValueDefinition(Value), TypeDefinition(Type)])),
+		])
 
-		export const ValueBlockMember = OneOf((SELF) => [Literal, Export(ValueDefinition()), Tuple(SELF), Block(SELF)])
-		export const Value = OneOf((SELF) => [Literal, Tuple(SELF), Block(ValueBlockMember)])
+		// Ok this SELF thing works, as expected
+		// But we still can't reference types within each other, like Foo refers to Bar, and Bar refers to Foo stuff can't be happen
+		// So I think best thing we can do is, removing `meta` from Token, this way they won't be able to reference each other on the type level
+		// And we might have a `meta` field on the token level, which will be a `WeakMap<Token, any>` and will be used to store meta data
+		// Or something like that
+		// We gotta rewrite this whole thing, find a solution for this
 	}
 }
