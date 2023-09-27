@@ -7,7 +7,7 @@ type Foo ()
 type Bar (123)
 type Baz (i64)
 type Qux ({
-    pub var hello = 123: i64
+    pub var hello = "world"
 
     pub type X (i64)
     pub type Y (i64)
@@ -16,16 +16,17 @@ type Qux ({
 
 var ONE: Self = 1
 
+type trait (i64)
 type trait Number {
-    pub var ZERO: Self = 0
-    pub var ONE: Self = 1
+    pub var ZERO: Self
+    pub var ONE: Self
 }
 
 {
     pub var foo = 123: i64
 }
 
-var pub = 69: i128
+var pub = (69: i32 + 420: i128): i64
 
 var a = {
     type Foo ()
@@ -33,7 +34,6 @@ var a = {
 
     pub var x = 123: i64
 }
-
 `
 
 const result = Token.tokenizeScript(script)
