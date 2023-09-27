@@ -12,14 +12,8 @@ export namespace Token {
 		if (!result) return []
 		if (result instanceof ScriptReader.SyntaxError) return result
 		const tokens = result.meta.tokens
-		tokens.push({
-			type: `end-of-script(${reader.peek()})`,
-			location: {
-				startAt: reader.getIndex(),
-				endAt: reader.getIndex(),
-			},
-			meta: {},
-		} as (typeof tokens)[number])
+		Tokens.Whitespace("full").expect(reader)
+		if (reader.peek() !== null) return reader.syntaxError(`Expected end of script, got "${reader.peek()}"`)
 		return tokens
 	}
 
