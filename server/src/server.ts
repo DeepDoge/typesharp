@@ -128,26 +128,10 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 		else if (Token.is(token, Token.Tokens.Name) && token.meta.type === "value") addSemanticToken(token.location, "variable", "declaration")
 		else if (Token.is(token, Token.Tokens.Symbol)) addSemanticToken(token.location, "operator", "declaration")
 		else if (Token.is(token, Token.Tokens.Keyword)) addSemanticToken(token.location, "keyword", "declaration")
-
-		const entries = Object.entries(token.meta)
-		for (const [key, value] of entries) {
-			if (typeof value === "object" && value !== null) {
-				if (Array.isArray(value)) {
-					const arr = value as unknown[]
-					for (const item of arr) {
-						if (typeof item !== "object" || item == null || !("meta" in item)) continue
-						const token = item as Token
-						analyzeToken(token)
-					}
-				} else if ("meta" in value) {
-					const token = value as Token
-					analyzeToken(token)
-				}
-			}
-		}
 	}
 
 	const result = Token.tokenizeScript(script)
+
 	if (result instanceof ScriptReader.SyntaxError) {
 		const startLine = script.substring(0, result.at).split("\n").length - 1
 		const startColumn = script.substring(0, result.at).split("\n").pop()!.length
@@ -173,8 +157,23 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 		}
 	}
 
+	const tokensSet = new Set<Token>()
+	function pushTokens(tokens: Token[]) {
+		for (const token of tokens) {
+			if (tokensSet.has(token)) continue
+			tokensSet.add(token)
+			const values = Object.values(token.meta)
+			for (const value of values) {
+				if (Array.isArray(value)) pushTokens(value)
+				else if (Token.is(value)) pushTokens([value])
+			}
+		}
+	}
+	pushTokens(result)
+	const sortedTokens = [...tokensSet].sort((a, b) => a.location.startAt - b.location.startAt)
+
 	console.log(JSON.stringify(result, null, "\t"))
-	result.forEach(analyzeToken)
+	sortedTokens.forEach(analyzeToken)
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
 	semanticDataCache.set(textDocument.uri, data)
 	return { data }
