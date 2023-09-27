@@ -22,11 +22,8 @@ import {
 } from "vscode-languageserver/node"
 
 import { TextDocument } from "vscode-languageserver-textdocument"
-import { Token, tokenize } from "./tokenize"
-import { LiteralNumberToken } from "./tokenize/literalNumberToken"
+import { Token } from "./tokenize"
 import { ScriptReader } from "./tokenize/reader"
-import { TypeNameToken } from "./tokenize/typeNameToken"
-import { VariableNameToken } from "./tokenize/variableNameToken"
 
 const connection = createConnection(ProposedFeatures.all)
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
@@ -122,26 +119,27 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 				start: { line: startLine, character: startColumn },
 				end: { line: endLine, character: endColumn },
 			},
-			message: `Token type: ${token.tokenType} Line: ${startLine} Character: ${startColumn}`,
+			message: `Token type: ${token.type} Line: ${startLine} Character: ${startColumn}`,
 		})
 
-		if (Token.is(token, LiteralNumberToken)) addSemanticToken(token.location, "number", "declaration")
-		else if (Token.is(token, TypeNameToken)) addSemanticToken(token.location, "type", "declaration")
-		else if (Token.is(token, VariableNameToken)) addSemanticToken(token.location, "variable", "declaration")
-		else if (token.tokenType.startsWith("symbol(")) addSemanticToken(token.location, "operator", "declaration")
-		else if (token.tokenType.startsWith("keyword(")) addSemanticToken(token.location, "keyword", "declaration")
+		if (Token.is(token, Token.Tokens.NumberLiteral)) addSemanticToken(token.location, "number", "declaration")
+		else if (Token.is(token, Token.Tokens.StringLiteral)) addSemanticToken(token.location, "string", "declaration")
+		else if (Token.is(token, Token.Tokens.Name) && token.meta.type === "type") addSemanticToken(token.location, "type", "declaration")
+		else if (Token.is(token, Token.Tokens.Name) && token.meta.type === "value") addSemanticToken(token.location, "variable", "declaration")
+		else if (Token.is(token, Token.Tokens.Symbol)) addSemanticToken(token.location, "operator", "declaration")
+		else if (Token.is(token, Token.Tokens.Keyword)) addSemanticToken(token.location, "keyword", "declaration")
 
-		const entries = Object.entries(token)
+		const entries = Object.entries(token.meta)
 		for (const [key, value] of entries) {
 			if (typeof value === "object" && value !== null) {
 				if (Array.isArray(value)) {
 					const arr = value as unknown[]
 					for (const item of arr) {
-						if (typeof item !== "object" || item == null || !("tokenType" in item)) continue
+						if (typeof item !== "object" || item == null || !("meta" in item)) continue
 						const token = item as Token
 						analyzeToken(token)
 					}
-				} else if ("tokenType" in value) {
+				} else if ("meta" in value) {
 					const token = value as Token
 					analyzeToken(token)
 				}
@@ -149,7 +147,7 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 		}
 	}
 
-	const result = tokenize(script)
+	const result = Token.tokenizeScript(script)
 	if (result instanceof ScriptReader.SyntaxError) {
 		const startLine = script.substring(0, result.at).split("\n").length - 1
 		const startColumn = script.substring(0, result.at).split("\n").pop()!.length
@@ -175,6 +173,7 @@ connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null
 		}
 	}
 
+	console.log(JSON.stringify(result, null, "\t"))
 	result.forEach(analyzeToken)
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
 	semanticDataCache.set(textDocument.uri, data)

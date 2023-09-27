@@ -1,65 +1,543 @@
-import { ExportToken } from "./exportToken"
-import { FunctionCallToken } from "./functionCallToken"
-import { LiteralNumberToken } from "./literalNumberToken"
-import { MultipleToken } from "./multipleToken"
-import { OneOfToken } from "./oneOfToken"
 import { ScriptReader } from "./reader"
-import { ReturnToken } from "./returnToken"
-import { TypeDefinitionToken } from "./typeDefinitionToken"
-import { TypeNameToken } from "./typeNameToken"
-import { TypeToken } from "./typeToken"
-import { TypeTraitToken } from "./typeTraitToken"
-import { ValueToken } from "./valueToken"
-import { VariableDefinitionToken } from "./variableDefinitionToken"
-import { VariableNameToken } from "./variableNameToken"
 
-export type Token<TName extends string = string, T = { [key: PropertyKey]: unknown }> = T & {
-	tokenType: TName
+export interface Token<TMeta extends object = {}> {
+	type: string
 	location: Token.Location
+	meta: TMeta
 }
 export namespace Token {
+	export function tokenizeScript(script: string) {
+		const reader = ScriptReader.create(script)
+		const result = Tokens.Multiline(Tokens.Root).expect(reader)
+		if (!result) return []
+		if (result instanceof ScriptReader.SyntaxError) return result
+		const tokens = result.meta.tokens
+		tokens.push({
+			type: `end-of-script(${reader.peek()})`,
+			location: {
+				startAt: reader.getIndex(),
+				endAt: reader.getIndex(),
+			},
+			meta: {},
+		} as any)
+		return tokens
+	}
+
 	export type Location = {
 		startAt: number
 		endAt: number
 	}
-	export type Of<T extends Token.Builder<Token>> = T extends Token.Builder<infer U> ? U : never
-	export type Builder<T extends Token> = {
-		tokenType(): T["tokenType"]
-		expect(reader: ScriptReader): T | null | ScriptReader.SyntaxError
-	}
-	export type BuilderNoError<T extends Token> = {
-		tokenType(): T["tokenType"]
-		expect(reader: ScriptReader): T | null
-	}
-	export type BuilderNoNull<T extends Token> = {
-		tokenType(): T["tokenType"]
-		expect(reader: ScriptReader): T | ScriptReader.SyntaxError
+	export const SyntaxError = ScriptReader.SyntaxError
+	export type SyntaxError = ScriptReader.SyntaxError
+
+	export type Of<T extends Expector.Factory<Token> | Expector<Token>> = T extends Expector<infer U>
+		? U
+		: T extends Expector.Factory<infer U>
+		? U
+		: never
+
+	const tokenWeakMap = new WeakMap<Token, unknown>()
+	export function is<T extends Token>(token: Token, builderOrFactory: Expector<T> | Expector.Factory<T>): token is T {
+		if (typeof builderOrFactory === "function") return tokenWeakMap.get(token) === builderOrFactory
+		return token.type === builderOrFactory.type
 	}
 
-	export function is<T extends Token>(token: Token, builder: Token.Builder<T>): token is T {
-		return token.tokenType === builder.tokenType()
+	export type Expector<T extends Token = Token> = {
+		type: T["type"]
+		expect: (reader: ScriptReader) => T | SyntaxError | null
+	}
+	export namespace Expector {
+		export type Factory<T extends Token> = (...args: any[]) => Expector<T>
+
+		export function create<const T extends string, const TMeta extends object>(
+			type: T,
+			key: unknown,
+			build: (reader: ScriptReader) => TMeta | SyntaxError | null
+		) {
+			const selfExpector: Expector<Token<TMeta>> = {
+				type,
+				expect(reader) {
+					try {
+						const startAt = reader.getIndex()
+						const checkPoint = reader.checkpoint()
+						const result = build(reader)
+						const endAt = reader.getIndex()
+						if (!result) return checkPoint.restore(), null
+						if (result instanceof SyntaxError) return result
+						const selfToken: Token<TMeta> = {
+							meta: result,
+							type,
+							location: {
+								startAt,
+								endAt,
+							},
+						}
+						tokenWeakMap.set(selfToken, key)
+						return selfToken
+					} catch (error) {
+						return reader.syntaxError(String(error))
+					}
+				},
+			}
+
+			return selfExpector
+		}
+	}
+
+	export namespace Tokens {
+		function nullOrError(token: Token | SyntaxError | null): token is SyntaxError | null {
+			return token instanceof SyntaxError || token === null
+		}
+		export function OneOf<const TExpector extends Token.Expector>(oneOfExpectors: readonly TExpector[]): TExpector {
+			const selfExpector: Token.Expector = {
+				type: oneOfExpectors.map((expector) => expector.type).join(" | "),
+				expect(reader: ScriptReader) {
+					for (const oneOfExpector of oneOfExpectors) {
+						const self = oneOfExpector.expect(reader)
+						if (self) return self
+					}
+					return null
+				},
+			}
+			return selfExpector as never
+		}
+
+		type ExpectorBuilderReturnType<T extends Token> = (T extends Token<infer U> ? U : never) | null | SyntaxError
+
+		export type Whitespace = Token<{}>
+		export function Whitespace<const T1 extends "inline" | "full">(mode1: T1) {
+			return Token.Expector.create(`whitespace(${mode1})`, Whitespace, (reader): ExpectorBuilderReturnType<Whitespace> => {
+				const whitespace = reader.expectWhitespace(mode1 === "inline")
+				if (!whitespace) return null
+				return {}
+			})
+		}
+
+		export type EndOfLine = Token<{}>
+		export function EndOfLine() {
+			return Token.Expector.create("end-of-line", EndOfLine, (reader): ExpectorBuilderReturnType<EndOfLine> => {
+				const endOfLine = reader.expectEndOfLine()
+				if (!endOfLine) null
+				return {}
+			})
+		}
+
+		export type Word = Token<{
+			value: string
+		}> & {}
+		export function Word() {
+			return Token.Expector.create("word", Word, (reader): ExpectorBuilderReturnType<Word> => {
+				const firstChar = reader.peek()
+				if (!firstChar) return null
+				if (/[0-9]/.test(firstChar)) return null
+
+				let value = ""
+				while (true) {
+					const char = reader.peek()
+					if (!char) break
+					if (!/[0-9a-zA-Z_$]/.test(char)) break
+					value += char
+					reader.next()
+				}
+				if (!value) return null
+				return {
+					value,
+				}
+			})
+		}
+
+		export type Keyword<TKeyword extends string> = Token<{
+			value: TKeyword
+		}>
+		export function Keyword<const TKeyword extends string>(keyword: TKeyword) {
+			return Token.Expector.create(`keyword(${keyword})`, Keyword, (reader): ExpectorBuilderReturnType<Keyword<TKeyword>> => {
+				for (let i = 0; i < keyword.length; i++) {
+					const char = reader.peek()
+					if (!char) return null
+					if (char !== keyword[i]) return null
+					reader.next()
+				}
+
+				return {
+					value: keyword,
+				}
+			})
+		}
+
+		export type Symbol<TSymbol extends string> = Token<{
+			value: TSymbol
+		}>
+		export function Symbol<const TSymbol extends string>(symbol: TSymbol) {
+			return Token.Expector.create(`symbol(${symbol})`, Symbol, (reader): ExpectorBuilderReturnType<Symbol<TSymbol>> => {
+				for (let i = 0; i < symbol.length; i++) {
+					const char = reader.peek()
+					if (!char) return null
+					if (char !== symbol[i]) return null
+					reader.next()
+				}
+
+				return {
+					value: symbol,
+				}
+			})
+		}
+
+		export type Operation<TLeft extends Token.Expector, TOperator extends string, TRight extends Token.Expector> = Token<{
+			left: TLeft
+			operator: Symbol<TOperator>
+			right: TRight
+		}>
+		export function Operation<const TLeft extends Token.Expector<any>, const TOperator extends string, const TRight extends Token.Expector<any>>(
+			leftExpector: TLeft,
+			operatorString: TOperator,
+			rightExpector: TRight
+		) {
+			return Token.Expector.create(
+				`operation(${leftExpector.type} ${operatorString} ${rightExpector.type})`,
+				Operation,
+				(reader): ExpectorBuilderReturnType<Operation<TLeft, TOperator, TRight>> => {
+					const left = leftExpector.expect(reader)
+					if (nullOrError(left)) return left
+
+					Whitespace("full").expect(reader)
+
+					const operator = Symbol(operatorString).expect(reader)
+					if (nullOrError(operator)) return operator
+
+					Whitespace("full").expect(reader)
+
+					const right = rightExpector.expect(reader)
+					if (!right) return reader.syntaxError("Expected right operand")
+					if (right instanceof SyntaxError) return right
+
+					return {
+						left,
+						operator,
+						right,
+					}
+				}
+			)
+		}
+
+		export type NumberLiteral = Token<{
+			value: number
+		}>
+		export function NumberLiteral() {
+			return Token.Expector.create("number", NumberLiteral, (reader): ExpectorBuilderReturnType<NumberLiteral> => {
+				const firstChar = reader.peek()
+				if (!firstChar) return null
+				if (!/[0-9]/.test(firstChar)) return null
+
+				let value = ""
+				while (true) {
+					const char = reader.peek()
+					if (!char) break
+					if (!/[0-9]/.test(char)) break
+					value += char
+					reader.next()
+				}
+				if (!value) return null
+				return {
+					value: Number(value),
+				}
+			})
+		}
+
+		export type StringLiteral = Token<{
+			value: string
+		}>
+		export function StringLiteral() {
+			return Token.Expector.create("string", StringLiteral, (reader): ExpectorBuilderReturnType<StringLiteral> => {
+				const firstChar = reader.peek()
+				if (!firstChar) return null
+				if (firstChar !== '"') return null
+
+				let value = ""
+				reader.next()
+				let escape = false
+				while (true) {
+					const char = reader.next()
+					if (!char) return reader.syntaxError("Expected closing quote")
+					if (escape) {
+						value += JSON.parse(`"\\${char}"`)
+						escape = false
+						continue
+					}
+					if (char === '"') break
+					if (char === "\\") {
+						escape = true
+						continue
+					}
+					value += char
+				}
+				return {
+					value,
+				}
+			})
+		}
+
+		export type BooleanLiteral = Token<{
+			value: boolean
+		}>
+		export function BooleanLiteral() {
+			return Token.Expector.create("boolean", BooleanLiteral, (reader): ExpectorBuilderReturnType<BooleanLiteral> => {
+				const keyword = OneOf([Keyword("true"), Keyword("false")]).expect(reader)
+				if (nullOrError(keyword)) return keyword
+				return {
+					value: keyword.meta.value === "true",
+				}
+			})
+		}
+
+		export type Tuple<T extends Token.Expector> = Token<{
+			open: Symbol<"(">
+			tokens: Token.Of<T>[]
+			close: Symbol<")">
+		}>
+		export function Tuple<const T extends Token.Expector>(tupleExpector: T) {
+			return Token.Expector.create(`tuple(${tupleExpector.type})`, Tuple, (reader): ExpectorBuilderReturnType<Tuple<T>> => {
+				const open = Symbol("(").expect(reader)
+				if (nullOrError(open)) return open
+
+				const tokens: Token.Of<T>[] = []
+				while (true) {
+					const token = tupleExpector.expect(reader)
+					if (!token) break
+					if (token instanceof SyntaxError) return token
+					tokens.push(token as Token.Of<T>)
+					const comma = Symbol(",").expect(reader)
+					if (!comma) break
+					if (comma instanceof SyntaxError) return comma
+					Whitespace("full").expect(reader)
+				}
+
+				const close = Symbol(")").expect(reader)
+				if (!close) return reader.syntaxError("Expected closing parenthesis")
+				if (close instanceof SyntaxError) return close
+
+				return {
+					open,
+					tokens,
+					close,
+				}
+			})
+		}
+
+		export type Export<T extends Token.Expector> = Token<{
+			keyword: Keyword<"pub">
+			token: Token.Of<T>
+		}>
+		export function Export<const T extends Token.Expector<any>>(exportExpector: T) {
+			return Token.Expector.create(`export(${exportExpector.type})`, Export, (reader): ExpectorBuilderReturnType<Export<T>> => {
+				const keyword = Keyword("pub").expect(reader)
+				if (nullOrError(keyword)) return keyword
+
+				if (!Whitespace("inline").expect(reader)) return reader.syntaxError(`Expected whitespace after ${keyword.type}`)
+
+				const token = exportExpector.expect(reader)
+				if (nullOrError(token)) return token
+
+				return {
+					keyword,
+					token,
+				}
+			})
+		}
+
+		export type Name<T extends "type" | "value"> = Token<{
+			type: T
+			value: string
+		}>
+		export function Name<const T extends "type" | "value">(type: T) {
+			return Token.Expector.create(`name(${type})`, Name, (reader): ExpectorBuilderReturnType<Name<T>> => {
+				const word = Word().expect(reader)
+				if (nullOrError(word)) return word
+				return {
+					type,
+					value: word.meta.value,
+				}
+			})
+		}
+
+		export type Nothing = Token<{}>
+		export function Nothing() {
+			return Token.Expector.create(`nothing`, Nothing, (reader): ExpectorBuilderReturnType<Nothing> => {
+				Whitespace("full").expect(reader)
+				return {}
+			})
+		}
+
+		export type ValueDefinition = Token<{
+			keyword: Keyword<"var">
+			name: Name<"value"> | Operation<Expector<Name<"value">>, ":", typeof Type>
+			equals: Operation<Token.Expector<Whitespace>, "=", typeof Value> | null
+		}>
+		export function ValueDefinition<T extends Token.Expector>() {
+			return Token.Expector.create(`value-definition`, ValueDefinition, (reader): ExpectorBuilderReturnType<ValueDefinition> => {
+				const keyword = Keyword("var").expect(reader)
+				if (nullOrError(keyword)) return keyword
+
+				if (!Whitespace("inline").expect(reader)) return reader.syntaxError(`Expected whitespace after ${keyword.type}`)
+
+				const name = OneOf([Operation(Name("value"), ":", Type), Name("value")]).expect(reader)
+				if (nullOrError(name)) return name
+
+				Whitespace("inline").expect(reader)
+
+				const equals = Operation(Nothing(), "=", Value).expect(reader)
+				if (equals instanceof SyntaxError) return equals
+
+				return {
+					keyword,
+					name,
+					equals,
+				}
+			})
+		}
+
+		export type TypeDefinition = Token<{
+			keyword: Keyword<"type">
+			name: Name<"type">
+			type: Tuple<typeof Type>
+		}>
+		export function TypeDefinition() {
+			return Token.Expector.create(`type-definition`, TypeDefinition, (reader): ExpectorBuilderReturnType<TypeDefinition> => {
+				const keyword = Keyword("type").expect(reader)
+				if (nullOrError(keyword)) return keyword
+
+				if (!Whitespace("inline").expect(reader)) return reader.syntaxError(`Expected whitespace after ${keyword.type}`)
+
+				const name = Name("type").expect(reader)
+				if (nullOrError(name)) return name
+
+				if (!Whitespace("inline").expect(reader)) return reader.syntaxError(`Expected whitespace after ${name.type}`)
+
+				var expects = Tuple(Type)
+				const type = expects.expect(reader)
+				if (!type) return reader.syntaxError(`Expected ${expects.type} after ${name.type}`)
+				if (type instanceof SyntaxError) return type
+
+				return {
+					keyword,
+					name,
+					type,
+				}
+			})
+		}
+
+		export type TypeTrait = Token<{
+			keyword: Keyword<"type trait">
+			name: Name<"type">
+			type: Block<Expector<Export<Expector<TypeDefinition | ValueDefinition>>>>
+		}>
+		export function TypeTrait() {
+			return Token.Expector.create(`type-trait`, TypeTrait, (reader): ExpectorBuilderReturnType<TypeTrait> => {
+				const keyword = Keyword("type trait").expect(reader)
+				if (nullOrError(keyword)) return keyword
+
+				if (!Whitespace("inline").expect(reader)) return reader.syntaxError(`Expected whitespace after ${keyword.type}`)
+
+				const name = Name("type").expect(reader)
+				if (nullOrError(name)) return name
+
+				Whitespace("inline").expect(reader)
+
+				const type = Block(Export(OneOf([TypeDefinition(), ValueDefinition()]))).expect(reader)
+				if (nullOrError(type)) return type
+
+				return {
+					keyword,
+					name,
+					type,
+				}
+			})
+		}
+
+		export type Multiline<T extends Token.Expector> = Token<{
+			tokens: Token.Of<T>[]
+		}>
+		export function Multiline<const T extends Token.Expector>(multilineExpector: T) {
+			return Token.Expector.create(`multiline(${multilineExpector.type})`, Multiline, (reader): ExpectorBuilderReturnType<Multiline<T>> => {
+				const tokens: Token.Of<T>[] = []
+				while (true) {
+					Whitespace("full").expect(reader)
+					const token = multilineExpector.expect(reader)
+					if (!token) break
+					if (token instanceof SyntaxError) return token
+					tokens.push(token as Token.Of<T>)
+					const endOfLine = EndOfLine().expect(reader)
+					if (nullOrError(endOfLine)) return reader.syntaxError(`Expected end of line after ${token.type}`)
+				}
+
+				return { tokens }
+			})
+		}
+
+		export type Block<T extends Token.Expector> = Token<{
+			open: Symbol<"{">
+			multiline: Multiline<T> | null
+			close: Symbol<"}">
+		}>
+		export function Block<const T extends Token.Expector>(expector: T) {
+			return Token.Expector.create(`block(${expector.type})`, Block, (reader): ExpectorBuilderReturnType<Block<T>> => {
+				const open = Symbol("{").expect(reader)
+				if (nullOrError(open)) return open
+
+				const multiline = Multiline(expector).expect(reader)
+				if (multiline instanceof SyntaxError) return multiline
+
+				const close = Symbol("}").expect(reader)
+				if (!close) return reader.syntaxError(`Expected closing brace after ${multiline?.meta.tokens.at(-1)?.type ?? open.type}`)
+				if (close instanceof SyntaxError) return close
+
+				return {
+					open,
+					multiline,
+					close,
+				}
+			})
+		}
+
+		type ReplaceTupleRecursively<T, TFind, TReplace> = T extends readonly [infer U, ...infer V]
+			? readonly [ReplaceRecursively<U, TFind, [TReplace]>, ...ReplaceTupleRecursively<V, TFind, TReplace>]
+			: T extends readonly (infer U)[]
+			? readonly ReplaceRecursively<U, TFind, [TReplace]>[]
+			: T
+
+		type ReplaceRecursively<T, TFind, TReplace extends [unknown]> = T extends TFind
+			? TReplace[0]
+			: T extends object
+			? { [K in keyof T]: ReplaceRecursively<T[K], TFind, TReplace> }
+			: T extends any[] | readonly any[]
+			? ReplaceTupleRecursively<T, TFind, TReplace[0]>
+			: T
+
+		declare const SELF: unique symbol
+		type SELF = Token.Expector & { [SELF]: SELF }
+		export function Recursive<T extends Token.Expector>(fn: (SELF: SELF) => T) {
+			const SELF = {
+				type: "...",
+				expect(reader) {
+					return result.expect(reader)
+				},
+			} as T
+
+			const result = fn(SELF as unknown as SELF)
+			type U = ReplaceRecursively<Token.Of<T>, SELF, [U]>
+			return result as unknown as Token.Expector<U>
+		}
+
+		export const Literal = OneOf([NumberLiteral(), StringLiteral(), BooleanLiteral()])
+		export const Definition = OneOf([ValueDefinition(), TypeTrait(), TypeDefinition()])
+
+		export const Type = Recursive((SELF) =>
+			OneOf([Literal, Tuple(SELF), Block(OneOf([Definition, Export(OneOf([TypeDefinition(), ValueDefinition(), SELF]))])), Name("type")])
+		)
+		const ValueWithoutType = Recursive((SELF) =>
+			OneOf([Literal, Tuple(SELF), Block(OneOf([Definition, Export(ValueDefinition()), SELF])), Name("value")])
+		)
+		export const Value = OneOf([Operation(ValueWithoutType, ":", Type), ValueWithoutType])
+
+		export const Root = OneOf([Definition, Export(Definition), Value])
 	}
 }
-
-export function tokenize(script: string) {
-	const reader = ScriptReader.create(script)
-	const result = MultipleToken(RootLevelToken).expect(reader)
-	if (!result) return []
-	if (result instanceof ScriptReader.SyntaxError) return result
-	return result.members
-}
-
-export type PrimitiveTypeToken = Token.Of<typeof PrimitiveTypeToken>
-export const PrimitiveTypeToken = OneOfToken([TypeNameToken, LiteralNumberToken])
-
-export type PrimitiveValueToken = Token.Of<typeof PrimitiveValueToken>
-export const PrimitiveValueToken = OneOfToken([FunctionCallToken, LiteralNumberToken, VariableNameToken])
-
-export type DefinitionToken = TypeDefinitionToken | VariableDefinitionToken
-export const DefinitionToken: Token.Builder<DefinitionToken> = OneOfToken([TypeDefinitionToken, VariableDefinitionToken])
-
-export type PrimitiveTopLevelToken = Token.Of<typeof PrimitiveTopLevelToken>
-export const PrimitiveTopLevelToken = OneOfToken([ReturnToken, TypeTraitToken, DefinitionToken, ValueToken, TypeToken])
-
-type RootLevelToken = Token.Of<typeof RootLevelToken>
-const RootLevelToken = OneOfToken([ExportToken(DefinitionToken), PrimitiveTopLevelToken])
