@@ -79,9 +79,6 @@ connection.onInitialized(() => {
 	})
 })
 
-// TODO: i have no idea why SemanticTokens acts weird,
-// idk what im doing wrong, logs are right, everything is right,
-// but it doesnt work right
 const semanticDataCache = new Map<string, number[]>()
 connection.onRequest(SemanticTokensRequest.type, (params): SemanticTokens | null => {
 	const textDocument = documents.get(params.textDocument.uri)

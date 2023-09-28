@@ -69,18 +69,20 @@ export namespace Parser {
 	}
 
 	function parseType(context: Context, token: Tokens.Type): Context.Type {
+		type _ = Token.DebugTokenType<typeof token>
+
 		if (Token.is(Tokens.Name, token)) {
 			const type = context.types.get(token.meta.value)
 			if (!type) throw new ParsingError(token, `Type '${token.meta.value}' is not defined`)
 			return type
 		}
 		if (Token.is(Tokens.StringLiteral, token)) return { signature: `"${token.meta.value}"` }
-		if (Token.is(Tokens.Symbol, token)) return token
 		if (Token.is(Tokens.NumberLiteral, token)) return { signature: `${token.meta.value}` }
 		if (Token.is(Tokens.Tuple, token))
 			return { signature: `(${token.meta.tokens.map((value) => parseType(context, value).signature).join(", ")})` }
 
 		token satisfies never
+		token.type satisfies never
 	}
 
 	function parseValueDefinition(context: Context, token: Tokens.ValueDefinition) {
