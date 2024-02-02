@@ -1,5 +1,6 @@
 # type++
-An experimental language with a type system on steroids, inspired by TypeScript and Rust
+An experimental language with a type system on steroids, inspired by TypeScript and Rust.
+It will change how you code, maybe will create its own Programming paradigm
 
 At first I was trying to make an LSP but that's hard this early, so just gonna make my own WebApp text editor IDE for the language. Easier than dealing with LSP
 
