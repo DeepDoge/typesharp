@@ -6,7 +6,7 @@ It will change how you code, maybe will create its own Programming paradigm
 - Compiling and running the code here is not the hard part.
 - Hard part and most important part here is the types.
 - Having my own editor to see and inspect types is a better option atm, then learning and writing an LSP, then i can make an adapter to connect it to an LSP later down the road.
-- And my editor can have better hot realoding times.
+- And my editor can have better hot realoding times which would make the dx a lot better.
 
 There is no code yet, just imaginary:
 ```
