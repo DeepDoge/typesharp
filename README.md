@@ -3,6 +3,10 @@ An experimental language with a type system on steroids, inspired by TypeScript 
 It will change how you code, maybe will create its own Programming paradigm
 
 At first I was trying to make an LSP but that's hard this early, so just gonna make my own WebApp text editor IDE for the language. Easier than dealing with LSP
+Compiling and running the code here is not the hard part.
+Hard part and most important part here is the types.
+Having my own editor to see and inspect types is a better option atm, then learning and writing an LSP, then i can make an adapter to connect it to an LSP later down the road.
+And my editor can have better hot realoding times.
 
 There is no code yet, just imaginary:
 ```
